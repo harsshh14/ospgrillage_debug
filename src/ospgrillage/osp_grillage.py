@@ -465,9 +465,10 @@ class OspGrillage:
         # loop all transform dict items,
         for k, v in mesh_obj.transform_dict.items():
             vxz = k.split("|")[0]  # first substring is vector xz
-            offset = k.split("|")[
-                1
-            ]  # second substring is global offset of node i and j of element
+            offset = k.split("|")[1]  # second substring is global offset of node i and j of element
+            print(vxz)
+            print(offset)
+            print("-------")
             if eval(offset):
                 offset_list = eval(
                     offset
