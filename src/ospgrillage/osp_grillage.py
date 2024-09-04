@@ -370,9 +370,12 @@ class OspGrillage:
                 )
 
         self._write_op_model()
+        print("for _write_op_model function-")
+        print(self.model_command_list)
+        print("--------------------------------------")
         # run model generation in OpenSees or write generation command to py file
         self._run_mesh_generation()
-
+        
         # create the result object for the grillage model
         self.results = Results(self.Mesh_obj)
         self._write_rigid_link()
@@ -534,7 +537,7 @@ class OspGrillage:
         if self.pyfile:
             with open(self.filename, "a") as file_handle:
                 file_handle.write("# Model nodes\n")
-
+        print("inside _write_op_node function")
         # loop all node in dict, write or eval node command
         for (
             k,
@@ -547,6 +550,9 @@ class OspGrillage:
                 y=coordinate[1],
                 z=coordinate[2],
             )
+            print("node_str")
+            print(node_str)
+            print("------------")
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(node_str)
