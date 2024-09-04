@@ -483,7 +483,7 @@ class OspGrillage:
                     offset_j=offset_list[1],
                 )
                 print(geom_tranfs_str)
-                print(-------------)
+                print("-------------")
 
                 if self.pyfile:
                     with open(self.filename, "a") as file_handle:
