@@ -376,7 +376,7 @@ class OspGrillage:
         # create the result object for the grillage model
         self.results = Results(self.Mesh_obj)
         print("output of self.results below")
-        print(self.results)
+        print(self.results.__dict__)
         print("------------------------------------")
         self._write_rigid_link()
 
