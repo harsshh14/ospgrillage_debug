@@ -375,9 +375,6 @@ class OspGrillage:
         
         # create the result object for the grillage model
         self.results = Results(self.Mesh_obj)
-        print("output of self.results below")
-        print(self.results.__dict__)
-        print("------------------------------------")
         self._write_rigid_link()
 
     # function to run mesh generation
@@ -749,14 +746,12 @@ class OspGrillage:
         """
         Write/execute OpenSeesPy rigidLink() command.
         """
-        print("inside _write_rigid_link function")
         # loop all rigidLink command, write or eval rigid link command. note link_str is already formatted
         for link_str in self.Mesh_obj.link_str_list:
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(link_str)
             else:
-                print(link_str)
                 eval(link_str)
 
     # interface function
