@@ -407,8 +407,6 @@ class OspGrillage:
             else:
                 eval(sec_str)
                 self.model_command_list.append(sec_str)
-        print("model_command_list after section_command_list")
-        print(self.model_command_list)
         # write /execute element commands
 
         for ele_tag, ele_str in self.element_command_list.items():
@@ -419,9 +417,13 @@ class OspGrillage:
                 eval(ele_str)
                 self.model_command_list.append(ele_str)
 
+        
         # write equalDOF commands
         self._write_equal_dof(node_tag_list=self.spring_node_pairs.items())
+        print("model_command_list after _write_equal_dof")
+        print(self.model_command_list)
 
+        
         # if created OpenSees instance, set instance flag
         if not self.pyfile:
             self.model_instance = True
@@ -589,12 +591,13 @@ class OspGrillage:
         """
         if dof is None:
             dof = [1, 2, 3, 4, 5]  # default
-
+        print("inside _write_equal_dof")
         # key is supported node , slave is non supported node
         for master_node, slave_node in node_tag_list:
             equaldof_str = "ops.equalDOF({rNodetag},{cNodetag},*{dofs})\n".format(
                 rNodetag=master_node, cNodetag=slave_node, dofs=dof
             )
+            print(equaldof_str)
 
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
