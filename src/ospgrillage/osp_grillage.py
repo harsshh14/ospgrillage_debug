@@ -370,9 +370,6 @@ class OspGrillage:
                 )
 
         self._write_op_model()
-        print("for _write_op_model function-")
-        print(self.model_command_list)
-        print("--------------------------------------")
         # run model generation in OpenSees or write generation command to py file
         self._run_mesh_generation()
         
@@ -410,7 +407,8 @@ class OspGrillage:
             else:
                 eval(sec_str)
                 self.model_command_list.append(sec_str)
-
+        print("model_command_list after section_command_list")
+        print(self.model_command_list)
         # write /execute element commands
 
         for ele_tag, ele_str in self.element_command_list.items():
@@ -466,6 +464,7 @@ class OspGrillage:
 
         """
         # loop all transform dict items,
+        print("inside _write_geom_transf function")
         for k, v in mesh_obj.transform_dict.items():
             vxz = k.split("|")[0]  # first substring is vector xz
             offset = k.split("|")[1]  # second substring is global offset of node i and j of element
@@ -483,6 +482,8 @@ class OspGrillage:
                     offset_i=offset_list[0],
                     offset_j=offset_list[1],
                 )
+                print(geom_tranfs_str)
+                print(-------------)
 
                 if self.pyfile:
                     with open(self.filename, "a") as file_handle:
@@ -537,7 +538,6 @@ class OspGrillage:
         if self.pyfile:
             with open(self.filename, "a") as file_handle:
                 file_handle.write("# Model nodes\n")
-        print("inside _write_op_node function")
         # loop all node in dict, write or eval node command
         for (
             k,
@@ -550,9 +550,6 @@ class OspGrillage:
                 y=coordinate[1],
                 z=coordinate[2],
             )
-            print("node_str")
-            print(node_str)
-            print("------------")
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(node_str)
