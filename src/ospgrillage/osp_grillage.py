@@ -2548,7 +2548,8 @@ class Analysis:
         self.plain_counter += 1
         return pattern_command
 
-    def add_load_command(self, load_str: list, load_factor):
+    def add_load_command(self, load_str: list, load_factor): #load_factor is the load factor and load_str contains the list containing ops.load in following format ops.load(nodeTag, fx, fy, fz, mx, my, mz)
+
         # create time series for added load case
         time_series = self._time_series_command(
             load_factor
