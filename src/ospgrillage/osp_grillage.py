@@ -2032,10 +2032,22 @@ class OspGrillage:
 
         # run basic load case
         for load_case_dict in selected_basic_lc:
+            print("load_case_dict")
+            print(load_case_dict)
+            print("-----------------")
             # create analysis object, run and get results
             load_case_obj = load_case_dict["loadcase"]
+            print("load_case_obj")
+            print(load_case_obj.__dict__)
+            print("----------------------------------------")
             load_command = load_case_dict["load_command"]
+            print("load_command")
+            print(load_command)
+            print("----------------------------------------")
             load_factor = load_case_dict["load_factor"]
+            print("load_factor")
+            print(load_factor)
+            print("----------------------------------------")
             load_case_analysis = Analysis(
                 analysis_name=load_case_obj.name,
                 ops_grillage_name=self.model_name,
