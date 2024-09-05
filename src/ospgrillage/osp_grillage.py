@@ -2048,7 +2048,7 @@ class OspGrillage:
                 load_case=load_case_obj,
             )
             print("load_case_analysis")
-            print(load_case_analysis)
+            print(load_case_analysis.__dict__)
             print("--------------------")
             load_case_analysis.add_load_command(load_command, load_factor=load_factor)
             # run the Analysis object, collect results, and store Analysis object in the list for Analysis load case
@@ -2562,11 +2562,11 @@ class Analysis:
             "load_command": load_str,
         }
         print("time_series_dict")
-        print(time_series_dict)
+        print(time_series_dict.__dict__)
         print("------------------------------")
         self.load_cases_dict_list.append(time_series_dict)  # add dict to list
         print("self.load_cases_dict_list")
-        print(self.load_cases_dict_list)
+        print(self.load_cases_dict_list.__dict__)
         print("------------------------------")
 
     def evaluate_analysis(self):
