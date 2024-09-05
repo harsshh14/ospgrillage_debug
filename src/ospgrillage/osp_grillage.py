@@ -1947,8 +1947,6 @@ class OspGrillage:
                         "load_factor": load_factor,
                     }
                     list_of_incr_load_case_dict.append(increment_load_case_dict)
-                    print("the list_of_incr_load_case_dict for moving load")
-                    print(list_of_incr_load_case_dict)
                 self.moving_load_case_dict[
                     moving_load_obj.name
                 ] = list_of_incr_load_case_dict
@@ -1961,10 +1959,6 @@ class OspGrillage:
                 "Input of add_load_case not a valid object. Hint:accepts only LoadCase or MovingLoad "
                 "objects"
             )
-        print("the moving_load_case_dict list for moving load")
-        print(self.moving_load_case_dict)        
-        print("the load_case_list for dead load")
-        print(self.load_case_list)
     
     def analyze(self, **kwargs) -> None:
         """
