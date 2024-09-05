@@ -1958,7 +1958,11 @@ class OspGrillage:
                 "Input of add_load_case not a valid object. Hint:accepts only LoadCase or MovingLoad "
                 "objects"
             )
-
+        print("the list_of_incr_load_case_dict list for moving load")
+        print(list_of_incr_load_case_dict)
+        print("the load_case_list for dead load")
+        print(self.load_case_list)
+    
     def analyze(self, **kwargs) -> None:
         """
         Function to analyze defined load
