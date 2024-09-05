@@ -1973,14 +1973,18 @@ class OspGrillage:
         :except: raise ValueError if missing arguments for either load_case=, or all=
 
         """
+        print("inside analyze function")
         # analyze all load case defined in self.load_case_dict for OspGrillage instance
         # loop each load case dict
         # get run options from kwargs
         all_flag = True  # Default true
         selected_load_case: list = kwargs.get("load_case", None)  #
+        print("the list of selected_load_case")
+        print(selected_load_case)
+        print("-------------------------------------------")
 
         # check if any load cases are defined
-        if self.load_case_list == [] and self.moving_load_case_dict == {}:
+        if self.load_case_list == [] and self.moving_load_case_dict == {}: # load case defined from add_load_case function final results
             raise Exception("No load cases were defined")
 
         if selected_load_case:
@@ -1992,36 +1996,49 @@ class OspGrillage:
 
         # if selected_load_case kwargs given, filter and select load case from load case list to run
         # if given selected load case as a list, select load cases matching names in list
-        if isinstance(selected_load_case, list):
+        if isinstance(selected_load_case, list): #checks if the selected_load_case has data type of list or not  
             selected_basic_lc = [
                 lc for lc in self.load_case_list if lc["name"] in selected_load_case
             ]
+            print("selected_basic_lc list")
+            print(selected_basic_lc)
+            print("--------------------------------")
             selected_moving_load_lc_list = [
                 {ml_name: lc}
                 for ml_name, lc in self.moving_load_case_dict.items()
                 if ml_name in selected_load_case
             ]
+            print("selected_moving_load_lc_list list")
+            print(selected_moving_load_lc_list)
+            print("--------------------------------")
             if selected_moving_load_lc_list:
                 selected_moving_load_lc_list = selected_moving_load_lc_list[
                     0
                 ]  # get first entry
 
         # if single string of load case name
-        elif isinstance(selected_load_case, str):
+        elif isinstance(selected_load_case, str): #checks if the selected_load_case has data type of string or not  
             selected_basic_lc = [
                 lc for lc in self.load_case_list if lc["name"] == selected_load_case
             ]
+            print("selected_basic_lc list")
+            print(selected_basic_lc)
+            print("--------------------------------")
             selected_moving_load_lc_list = [
                 {ml_name: lc}
                 for (ml_name, lc) in self.moving_load_case_dict.items()
                 if ml_name == selected_load_case
             ]
+            print("selected_moving_load_lc_list list")
+            print(selected_moving_load_lc_list)
+            print("--------------------------------")
             if selected_moving_load_lc_list:
                 selected_moving_load_lc_list = selected_moving_load_lc_list[
                     0
                 ]  # get first entry
 
         elif all_flag:  # else, run all load case in list
+            print("running all_flag elif statement")
             selected_basic_lc = self.load_case_list
             selected_moving_load_lc_list = self.moving_load_case_dict
         else:
