@@ -2566,7 +2566,7 @@ class Analysis:
         print("------------------------------")
         self.load_cases_dict_list.append(time_series_dict)  # add dict to list
         print("self.load_cases_dict_list")
-        print(self.load_cases_dict_list..items())
+        print(self.load_cases_dict_list.items())
         print("------------------------------")
 
     def evaluate_analysis(self):
