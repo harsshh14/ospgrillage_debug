@@ -2551,6 +2551,7 @@ class Analysis:
     def add_load_command(self, load_str: list, load_factor): #load_factor is the load factor and load_str contains the list containing ops.load in following format ops.load(nodeTag, fx, fy, fz, mx, my, mz)
 
         # create time series for added load case
+        print("inside add_load_command function")
         time_series = self._time_series_command(
             load_factor
         )  # get time series command - LF default 1
@@ -2560,7 +2561,13 @@ class Analysis:
             "pattern": pattern_command,
             "load_command": load_str,
         }
+        print("time_series_dict")
+        print(time_series_dict)
+        print("------------------------------")
         self.load_cases_dict_list.append(time_series_dict)  # add dict to list
+        print("self.load_cases_dict_list")
+        print(self.load_cases_dict_list)
+        print("------------------------------")
 
     def evaluate_analysis(self):
         # write/execute ops.load commands for load groups
