@@ -2562,11 +2562,11 @@ class Analysis:
             "load_command": load_str,
         }
         print("time_series_dict")
-        print(time_series_dict.__dict__)
+        print(time_series_dict.items())
         print("------------------------------")
         self.load_cases_dict_list.append(time_series_dict)  # add dict to list
         print("self.load_cases_dict_list")
-        print(self.load_cases_dict_list.__dict__)
+        print(self.load_cases_dict_list..items())
         print("------------------------------")
 
     def evaluate_analysis(self):
