@@ -2571,6 +2571,7 @@ class Analysis:
 
     def evaluate_analysis(self):
         # write/execute ops.load commands for load groups
+        print("inside evaluate_analysis function")
         if self.pyfile:
             with open(self.analysis_file_name, "a") as file_handle:
                 file_handle.write(self.wipe_command)
