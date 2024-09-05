@@ -2047,6 +2047,9 @@ class OspGrillage:
                 constraint_type=self.constraint_type,
                 load_case=load_case_obj,
             )
+            print("load_case_analysis")
+            print(load_case_analysis)
+            print("--------------------")
             load_case_analysis.add_load_command(load_command, load_factor=load_factor)
             # run the Analysis object, collect results, and store Analysis object in the list for Analysis load case
             (
