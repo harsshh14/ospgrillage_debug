@@ -316,12 +316,12 @@ class OspGrillage:
 
         # edge support type
         self.edge_support_type_dict = {
-            edge_num: self.fixity_vector["pin"]
+            edge_num: self.fixity_vector["fixed"]
             for i, edge_num in enumerate(
                 list(set(self.Mesh_obj.edge_node_recorder.values()))
             )
         }
-        self.edge_support_type_dict.update({0: self.fixity_vector["pin"]})
+        self.edge_support_type_dict.update({0: self.fixity_vector["fixed"]})
 
     def _create_mesh(self, **kwargs):
         """
