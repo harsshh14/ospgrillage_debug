@@ -583,7 +583,6 @@ class OspGrillage:
                 else:  # run instance
                     print("else clause 2")
                     eval(fix_str)
-                    print(f"{eval(fix_str)}")
                     self.model_command_list.append(fix_str)
 
     def _write_equal_dof(self, node_tag_list: list, dof: list = None):
