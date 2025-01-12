@@ -576,12 +576,14 @@ class OspGrillage:
                 fix_str = "ops.fix({}, *{})\n".format(
                     node_tag, self.edge_support_type_dict[edge_group_num]
                 )
+                print(f"{self.edge_support_type_dict[edge_group_num]}")
                 if self.pyfile:  # if writing py file
                     with open(self.filename, "a") as file_handle:
                         file_handle.write(fix_str)
                 else:  # run instance
                     print("else clause 2")
                     eval(fix_str)
+                    print(f"{eval(fix_str)}")
                     self.model_command_list.append(fix_str)
 
     def _write_equal_dof(self, node_tag_list: list, dof: list = None):
