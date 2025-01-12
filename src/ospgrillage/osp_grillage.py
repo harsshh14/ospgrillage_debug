@@ -3305,4 +3305,5 @@ class OspGrillageShell(OspGrillage):
                     file_handle.write(fix_str)
             else:  # run instance
                 eval(fix_str)
+                print("ventured into the last fix command")
                 self.model_command_list.append(fix_str)
