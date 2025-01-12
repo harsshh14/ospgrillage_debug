@@ -563,12 +563,16 @@ class OspGrillage:
             # TODO generalize for user input of boundary condition
         for node_tag, edge_group_num in mesh_obj.edge_node_recorder.items():
             # if node is an edge beam - is part of common group z ==0 ,do not assign any fixity
+            print(f"node tag- {node_tag}")
+            print(f"edge grp num - {edge_group_num}")
             if (
                 mesh_obj.node_spec[node_tag]["z_group"]
                 in mesh_obj.common_z_group_element[0]
             ):  # here [0] is first group
+                print("if clause 1")
                 pass  # move to next node in edge recorder
             else:
+                print("else clause 1")
                 fix_str = "ops.fix({}, *{})\n".format(
                     node_tag, self.edge_support_type_dict[edge_group_num]
                 )
@@ -576,6 +580,7 @@ class OspGrillage:
                     with open(self.filename, "a") as file_handle:
                         file_handle.write(fix_str)
                 else:  # run instance
+                    print("else clause 2")
                     eval(fix_str)
                     self.model_command_list.append(fix_str)
 
