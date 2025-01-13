@@ -225,7 +225,7 @@ class OspGrillage:
         self.fix_val_fixed = [1, 1, 1, 1, 1, 1]  # rigid /fixed support
         # default dict for support conditions
         self.fixity_vector = {
-            "pin": [1, 1, 1, 0, 0, 1],
+            "pin": [1, 1, 1, 0, 0, 0],
             "roller": [0, 1, 1, 0, 0, 0],
             "fixed": [1, 1, 1, 1, 1, 1],
         }
@@ -321,7 +321,7 @@ class OspGrillage:
                 list(set(self.Mesh_obj.edge_node_recorder.values()))
             )
         }
-        self.edge_support_type_dict.update({0: self.fixity_vector["roller"]})
+        self.edge_support_type_dict.update({0: self.fixity_vector["pin"]})
 
     def _create_mesh(self, **kwargs):
         """
