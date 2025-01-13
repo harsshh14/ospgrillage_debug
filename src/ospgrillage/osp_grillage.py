@@ -2640,6 +2640,11 @@ class Analysis:
                 self.ele_force.setdefault(ele_tag, ele_force)
                 global_ele_force = ops.eleResponse(ele_tag, "forces")
                 self.global_ele_force.setdefault(ele_tag, global_ele_force)
+            
+            print("local force")
+            print(self.ele_force)            
+            print("global ele force")
+            print(self.global_ele_force)
         else:
             print(
                 "OspGrillage is at output mode, pyfile = True. Procedure for {} are generated.".format(
