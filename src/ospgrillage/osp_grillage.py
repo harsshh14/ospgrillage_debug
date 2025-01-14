@@ -2495,7 +2495,7 @@ class Analysis:
         self.constraint_command = 'ops.constraints("{type}")\n'.format(
             type=self.constraint_type
         )  # default plain
-        self.algorithm_command = "ops.algorithm('Linear')\n"  # default linear
+        self.algorithm_command = "ops.algorithm('Newton')\n"  # default linear
         self.analyze_command = "ops.analyze({})\n".format(self.step)  # default 1 step
         self.analysis_command = 'ops.analysis("{}")\n'.format(analysis_type)
         self.intergrator_command = "ops.integrator('LoadControl', 1)\n"
