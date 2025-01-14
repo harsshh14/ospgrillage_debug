@@ -2599,6 +2599,8 @@ class Analysis:
             eval(self.system_command)
             eval(self.constraint_command)
             eval(self.algorithm_command)
+            print("algorithm command")
+            print(self.algorithm_command)
             eval(self.analysis_command)
             eval(self.analyze_command)
             self.all_command.append(self.intergrator_command)
