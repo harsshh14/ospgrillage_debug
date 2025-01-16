@@ -319,6 +319,8 @@ class OspGrillage:
             edge_num: self.fixity_vector["roller"]
             for i, edge_num in enumerate(
                 list(set(self.Mesh_obj.edge_node_recorder.values()))
+                print(f"i= {i}")
+                print(f"edge_num = {edge_num}")
             )
         }
         self.edge_support_type_dict.update({0: self.fixity_vector["pin"]})
