@@ -2628,10 +2628,13 @@ class Analysis:
         """
         if not self.pyfile:
             # first loop extract node displacements
-            for node_tag in list(set(self.Mesh_obj.edge_node_recorder.values())):
+            for node_tag in ops.getNodeTags():
                 ops.reactions()
-                disp_list = ops.nodeReaction(node_tag)
-                print(f"Node Tag: {node_tag}, Displacement List: {disp_list}")
+                i = 0  # Initialize i
+                while i < 12:
+                    disp_list = ops.nodeReaction(node_tag)
+                    print(f"Node Tag: {node_tag}, Displacement List: {disp_list}")
+                    i += 1  # Increment i by 1
                 self.node_disp.setdefault(node_tag, disp_list)
 
             # loop through all elements in Mesh, extract local forces
