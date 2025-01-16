@@ -314,9 +314,6 @@ class OspGrillage:
         )  # dict with keys being master node (support) and value being slave node (non-support)
         self.equal_dof_command_str_list = []  # list to store ops command
 
-        for i, edge_num in enumerate(list(set(self.Mesh_obj.edge_node_recorder.values()))):
-            print(f"i= {i}")
-            print(f"edge_num = {edge_num}")
         # edge support type
         self.edge_support_type_dict = {
             edge_num: self.fixity_vector["roller"]
@@ -2631,7 +2628,7 @@ class Analysis:
         """
         if not self.pyfile:
             # first loop extract node displacements
-            for node_tag in ops.getNodeTags():
+            for node_tag in list(set(self.Mesh_obj.edge_node_recorder.values())):
                 ops.reactions()
                 disp_list = ops.nodeReaction(node_tag)
                 print(f"Node Tag: {node_tag}, Displacement List: {disp_list}")
