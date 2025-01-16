@@ -2629,7 +2629,8 @@ class Analysis:
         if not self.pyfile:
             # first loop extract node displacements
             for node_tag in ops.getNodeTags():
-                disp_list = ops.nodeDisp(node_tag)
+                ops.reactions()
+                disp_list = ops.nodeReaction(node_tag)
                 self.node_disp.setdefault(node_tag, disp_list)
 
             # loop through all elements in Mesh, extract local forces
