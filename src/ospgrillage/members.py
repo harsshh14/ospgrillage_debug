@@ -304,31 +304,6 @@ class GrillageMember:
                 self.section.Iz * width,
             )
 
-        elif self.section.op_ele_type == "ModElasticBeam2d":
-            if None in [
-                self.section.A,
-                self.material.elastic_modulus,
-                self.section.Iz * width,
-                self.section.K11,
-                self.section.K33,
-                self.section.K44,
-            ]:
-                raise ValueError(
-                    "One or more missing arguments for Section: {}".format(
-                        self.section.op_section_type
-                    )
-                )
-            asterisk_input = "[{:.3e}, {:.3e}, {:.3e}, {:.3e}, {:.3e}, {:.3e}]".format(
-                self.section.A * width,
-                self.material.elastic_modulus,
-                self.section.Iz * width,
-                self.section.K11,
-                self.section.K33,
-                self.section.K44,
-            )
-
-        # TO be populated with more inputs for various element types
-
         return asterisk_input
 
     # Function to return argument, handled by OspGrillage
