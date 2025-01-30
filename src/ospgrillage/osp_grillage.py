@@ -19,6 +19,9 @@ from ospgrillage.members import *
 from ospgrillage.postprocessing import *
 import xarray as xr
 
+import importlib.util
+import os
+
 if TYPE_CHECKING:
     ...
 
@@ -340,6 +343,31 @@ class OspGrillage:
         return mesh_obj
 
     # interface function
+
+    def update_osp_model(self, new_pyfile_path: str):
+        """
+        Update the existing OpenSees model by reloading a modified Python file.
+
+        :param new_pyfile_path: Path to the modified Python file.
+        :type new_pyfile_path: str
+        """
+        if not os.path.exists(new_pyfile_path):
+            raise FileNotFoundError(f"The specified file {new_pyfile_path} does not exist.")
+        
+        # Dynamically load the modified Python file
+        spec = importlib.util.spec_from_file_location("updated_model", new_pyfile_path)
+        updated_model = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(updated_model)
+        
+        # Call necessary methods to update the model
+        if hasattr(updated_model, 'create_osp_model'):
+            updated_model.create_osp_model()
+        else:
+            raise AttributeError("The updated file does not contain 'create_osp_model' function.")
+        
+        print("Model updated successfully from the new Python file.")
+
+    
     def create_osp_model(self, pyfile: bool = False):
         """
         Create model in OpenSees model space.
