@@ -2659,7 +2659,7 @@ class Analysis:
             for node_tag in range(1,13):
                 ops.reactions()
                 disp_list = ops.nodeReaction(node_tag)
-                print(f"Node Tag: {node_tag}, Displacement List: {disp_list}")
+                print(f"Node Tag: {node_tag}, Displacement List: {disp_list[1]/1000}")
                 self.node_disp.setdefault(node_tag, disp_list)
 
             # loop through all elements in Mesh, extract local forces
