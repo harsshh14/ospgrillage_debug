@@ -294,6 +294,8 @@ class OspGrillage:
             orthogonal=self.ortho_mesh,
             **kwargs,
         )
+        print("Mesh_obj")
+        print(self.Mesh_obj)
 
         # create dict of standard elements from the generated Mesh obj
         self._create_standard_element_list()  # base class method, concrete classes may overwrite this
