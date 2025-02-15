@@ -296,8 +296,13 @@ class OspGrillage:
         )
         print("Mesh_obj")
         print(self.Mesh_obj.__dict__)
-        print("mesh_obj")
-        print(str(self.Mesh_obj))
+        print("Assigned Node Coordinates:", self.Mesh_obj.assigned_node_coord_dict)
+        print("Longitudinal Beams:", self.Mesh_obj.num_long_beam)
+        print("Transverse Beams:", self.Mesh_obj.num_trans_beam)
+        print("Mesh Dimensions:", self.Mesh_obj.long_dim, self.Mesh_obj.trans_dim, self.Mesh_obj.width)
+        print("Quad Elements:", self.Mesh_obj.quad_ele)
+        print("Transverse Elements:", self.Mesh_obj.trans_ele)
+
 
         # create dict of standard elements from the generated Mesh obj
         self._create_standard_element_list()  # base class method, concrete classes may overwrite this
