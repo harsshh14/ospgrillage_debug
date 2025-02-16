@@ -829,6 +829,7 @@ class OspGrillage:
         if grillage_member_obj.section.unit_width:
             if member == self.common_grillage_element_keys[-1]:
                 for ele in self.Mesh_obj.trans_ele:
+                    print("inside trans_ele loop")
                     n1 = ele[1]  # node i
                     n2 = ele[2]  # node j
                     node_tag_list = [n1, n2]
@@ -900,6 +901,7 @@ class OspGrillage:
         else:  # non-unit width member assignment
             if member == self.common_grillage_element_keys[-1]:
                 ele_list = self.Mesh_obj.trans_ele
+                print("inside loop 3")
 
                 if specific_span:  # filter for specific span elements only
                     ele_list = [
