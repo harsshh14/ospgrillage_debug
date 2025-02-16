@@ -880,6 +880,7 @@ class OspGrillage:
             elif member == "start_edge" or member == "end_edge":
                 for edge_group in self.common_grillage_element_z_group[member]:
                     for edge_ele in self.Mesh_obj.edge_group_to_ele[edge_group]:
+                        print("ele_str")
                         edge_ele_width = 0.5  # nominal half -m width
                         node_tag_list = [edge_ele[1], edge_ele[2]]
                         ele_str = grillage_member_obj.get_element_command_str(
@@ -891,6 +892,8 @@ class OspGrillage:
                             sectiontag=section_tag,
                         )
                         ele_command_list.append(ele_str)
+                        
+                        print(ele_str)
                         ele_tag_to_command_dict[edge_ele[0]] = ele_str
 
             ele_group_to_command_dict[0] = ele_command_list
