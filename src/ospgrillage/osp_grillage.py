@@ -835,14 +835,15 @@ class OspGrillage:
                     node_tag_list = [n1, n2]
                     # get node width of node_i and node_j
                     lis_1 = self.Mesh_obj.node_width_x_dict[n1]
-                    print(lis_1)
+                    # print(lis_1)
                     lis_2 = self.Mesh_obj.node_width_x_dict[n2]
-                    print(lis_2)
+                    # print(lis_2)
                     ele_width = 1
                     ele_width_record = []
                     # for the two list of vicinity nodes, find their distance and store in ele_width_record
                     for lis in [lis_1, lis_2]:
                         if len(lis) == 1:
+                            print("len 1")
                             ele_width_record.append(
                                 np.sqrt(
                                     lis[0][0] ** 2 + lis[0][1] ** 2 + lis[0][2] ** 2
@@ -850,6 +851,7 @@ class OspGrillage:
                                 / 2
                             )
                         elif len(lis) >= 2:
+                            print("len >2")
                             ele_width_record.append(
                                 (
                                     np.sqrt(
@@ -862,6 +864,7 @@ class OspGrillage:
                                 / 2
                             )
                         else:
+                            print("break")
                             #
                             break  # has assigned element, continue to next check
                     ele_width = np.mean(
@@ -877,6 +880,7 @@ class OspGrillage:
                         materialtag=material_tag,
                         sectiontag=section_tag,
                     )
+                    print(ele_str)
                     ele_command_list.append(ele_str)
                     ele_tag_to_command_dict[ele[0]] = ele_str
 
