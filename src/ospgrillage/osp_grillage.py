@@ -835,7 +835,9 @@ class OspGrillage:
                     node_tag_list = [n1, n2]
                     # get node width of node_i and node_j
                     lis_1 = self.Mesh_obj.node_width_x_dict[n1]
+                    print(lis_1)
                     lis_2 = self.Mesh_obj.node_width_x_dict[n2]
+                    print(lis_2)
                     ele_width = 1
                     ele_width_record = []
                     # for the two list of vicinity nodes, find their distance and store in ele_width_record
