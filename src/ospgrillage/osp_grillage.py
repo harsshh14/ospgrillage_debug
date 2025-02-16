@@ -933,17 +933,21 @@ class OspGrillage:
                 for z_group in self.common_grillage_element_z_group[member]:
                     # if specific group is specified, assign grillage member to specific groups only
                     if specific_group and z_group in specific_group_list:
+                        print("1")
                         continue  # go to next group
 
                     elif member == "start_edge" or member == "end_edge":
+                        print("2")
                         ele_list = self.Mesh_obj.edge_group_to_ele[
                             z_group
                         ]  # here z group represents the edge group instead
 
                     elif member == self.common_grillage_element_keys[-2]:
+                        print("3")
                         ele_list = self.Mesh_obj.connect_ele
 
                     else:
+                        print("4")
                         ele_list = self.Mesh_obj.z_group_to_ele[z_group]
 
                     if isinstance(
@@ -962,6 +966,8 @@ class OspGrillage:
                         material_tag=material_tag,
                         section_tag=section_tag,
                     )
+                    print("ele_command_list")
+                    print(ele_command_list)
 
                     ele_group_to_command_dict[z_group] = ele_command_list
 
