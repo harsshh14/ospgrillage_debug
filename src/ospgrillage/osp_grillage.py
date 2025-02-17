@@ -798,6 +798,9 @@ class OspGrillage:
 
         :raises: ValueError If missing member
         """
+        if custom_elements is not None:
+            print("yes")
+
         if self.diagnostics:
             print("Setting member: {} of model".format(member))
         if member is None:
@@ -831,6 +834,7 @@ class OspGrillage:
             if member == self.common_grillage_element_keys[-1]:
                 for ele in self.Mesh_obj.trans_ele:
                     print("inside trans_ele loop")
+                    print(ele)
                     n1 = ele[1]  # node i
                     n2 = ele[2]  # node j
                     node_tag_list = [n1, n2]
