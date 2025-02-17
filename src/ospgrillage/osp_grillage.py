@@ -768,6 +768,7 @@ class OspGrillage:
         member: str = None,
         specific_group: int = None,
         specific_span: int = None,
+        custom_elements: list = None,
     ):
         """
         Set `GrillageMember` instance object to elements of grillage members.
