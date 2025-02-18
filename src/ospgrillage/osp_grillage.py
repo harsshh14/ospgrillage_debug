@@ -799,8 +799,11 @@ class OspGrillage:
         :raises: ValueError If missing member
         """
         if custom_elements is not None:
-            for ele in self.Mesh_obj.trans_ele:
-                print(self.Mesh_obj.trans_ele)
+            result = [subarray for subarray in self.Mesh_obj.trans_ele if subarray[0] in custom_elements]
+
+            for subarray in result:
+                print(subarray)
+        
                 # if ele[0] in custom_elements:
                 #     print("yes")
                 #     n1 = ele[1]  # node i
