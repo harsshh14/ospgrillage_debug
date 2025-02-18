@@ -800,10 +800,10 @@ class OspGrillage:
         """
         if self.diagnostics:
             print("Setting member: {} of model".format(member))
-        if member is None:
-            raise ValueError(
-                "Missing target elements of grillage model to be assigned. Hint, member="
-            )
+        # if member is None:
+        #     raise ValueError(
+        #         "Missing target elements of grillage model to be assigned. Hint, member="
+        #     )
         specific_group_list = []
         if not isinstance(specific_group, list):
             specific_group_list = [specific_group]
