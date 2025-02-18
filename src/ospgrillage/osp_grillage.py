@@ -799,7 +799,64 @@ class OspGrillage:
         :raises: ValueError If missing member
         """
         if custom_elements is not None:
-            print("yes")
+            for ele in self.Mesh_obj.trans_ele:
+                if ele[0] in custom_elements:
+                    print("yes")
+                    n1 = ele[1]  # node i
+                    n2 = ele[2]  # node j
+                    node_tag_list = [n1, n2]
+                    # get node width of node_i and node_j
+                    lis_1 = self.Mesh_obj.node_width_x_dict[n1]
+                    # print(lis_1)
+                    lis_2 = self.Mesh_obj.node_width_x_dict[n2]
+                    # print(lis_2)
+                    ele_width = 1
+                    ele_width_record = []
+                    # for the two list of vicinity nodes, find their distance and store in ele_width_record
+                    for lis in [lis_1, lis_2]:
+                        if len(lis) == 1:
+                            # print("len 1")
+                            ele_width_record.append(
+                                np.sqrt(
+                                    lis[0][0] ** 2 + lis[0][1] ** 2 + lis[0][2] ** 2
+                                )
+                                / 2
+                            )
+                        elif len(lis) >= 2:    # this one runs always
+                            # print("len >2")
+                            ele_width_record.append(
+                                (
+                                    np.sqrt(
+                                        lis[0][0] ** 2 + lis[0][1] ** 2 + lis[0][2] ** 2
+                                    )
+                                    + np.sqrt(
+                                        lis[1][0] ** 2 + lis[1][1] ** 2 + lis[1][2] ** 2
+                                    )
+                                )
+                                / 2
+                            )
+                        else:
+                            # print("break")
+                            #
+                            break  # has assigned element, continue to next check
+                    ele_width = np.mean(
+                        ele_width_record
+                    )  # if node lies between a triangular and quadrilateral grid, get mean between
+                    # both width
+                    # here take the average width in x directions
+                    ''' this ele_str contains the data for transverse elements'''
+                    ele_str = grillage_member_obj.get_element_command_str(
+                        ele_tag=ele[0],
+                        node_tag_list=node_tag_list,
+                        transf_tag=ele[4],
+                        ele_width=ele_width,
+                        materialtag=material_tag,
+                        sectiontag=section_tag,
+                    )
+                    # print(ele_str)
+                    ele_command_list.append(ele_str)
+                    ele_tag_to_command_dict[ele[0]] = ele_str
+            
 
         if self.diagnostics:
             print("Setting member: {} of model".format(member))
