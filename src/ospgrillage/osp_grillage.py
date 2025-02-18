@@ -816,7 +816,7 @@ class OspGrillage:
                     # for the two list of vicinity nodes, find their distance and store in ele_width_record
                     for lis in [lis_1, lis_2]:
                         if len(lis) == 1:
-                            # print("len 1")
+                            print("len 1")
                             ele_width_record.append(
                                 np.sqrt(
                                     lis[0][0] ** 2 + lis[0][1] ** 2 + lis[0][2] ** 2
@@ -824,7 +824,7 @@ class OspGrillage:
                                 / 2
                             )
                         elif len(lis) >= 2:    # this one runs always
-                            # print("len >2")
+                            print("len >2")
                             ele_width_record.append(
                                 (
                                     np.sqrt(
