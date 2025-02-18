@@ -798,6 +798,37 @@ class OspGrillage:
 
         :raises: ValueError If missing member
         """
+        if self.diagnostics:
+            print("Setting member: {} of model".format(member))
+        if member is None:
+            raise ValueError(
+                "Missing target elements of grillage model to be assigned. Hint, member="
+            )
+        specific_group_list = []
+        if not isinstance(specific_group, list):
+            specific_group_list = [specific_group]
+        # check and write member's section command
+        section_tag = self._write_section(grillage_member_obj)
+        # check and write member's material command
+        material_tag = self._write_material(member=grillage_member_obj)
+        # dictionary for key = common member tag, val is list of str for ops.element()
+        ele_command_dict = dict()
+        ele_group_to_command_dict = dict()
+        ele_tag_to_command_dict = dict()
+        ele_command_list = []
+        # if option for pyfile is True, write the header for element group commands
+        if self.pyfile:
+            with open(self.filename, "a") as file_handle:
+                file_handle.write(
+                    "# Element generation for member: {}\n".format(member)
+                )
+        # lookup member grouping
+        # z_flag, x_flag, edge_flag, common_member_tag = self._create_standard_element_list(namestring=member)
+
+        ele_width = 1  # set default ele width 1
+        # if member properties is based on unit width (e.g. slab elements), get width of element and assign properties
+
+        
         if custom_elements is not None:
             result = [subarray for subarray in self.Mesh_obj.trans_ele if subarray[0] in custom_elements]
 
@@ -859,35 +890,6 @@ class OspGrillage:
                     ele_tag_to_command_dict[ele[0]] = ele_str
             
 
-        if self.diagnostics:
-            print("Setting member: {} of model".format(member))
-        if member is None:
-            raise ValueError(
-                "Missing target elements of grillage model to be assigned. Hint, member="
-            )
-        specific_group_list = []
-        if not isinstance(specific_group, list):
-            specific_group_list = [specific_group]
-        # check and write member's section command
-        section_tag = self._write_section(grillage_member_obj)
-        # check and write member's material command
-        material_tag = self._write_material(member=grillage_member_obj)
-        # dictionary for key = common member tag, val is list of str for ops.element()
-        ele_command_dict = dict()
-        ele_group_to_command_dict = dict()
-        ele_tag_to_command_dict = dict()
-        ele_command_list = []
-        # if option for pyfile is True, write the header for element group commands
-        if self.pyfile:
-            with open(self.filename, "a") as file_handle:
-                file_handle.write(
-                    "# Element generation for member: {}\n".format(member)
-                )
-        # lookup member grouping
-        # z_flag, x_flag, edge_flag, common_member_tag = self._create_standard_element_list(namestring=member)
-
-        ele_width = 1  # set default ele width 1
-        # if member properties is based on unit width (e.g. slab elements), get width of element and assign properties
         if grillage_member_obj.section.unit_width:
             if member == self.common_grillage_element_keys[-1]:
                 for ele in self.Mesh_obj.trans_ele:
