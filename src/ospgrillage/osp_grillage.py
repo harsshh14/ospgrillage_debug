@@ -996,6 +996,7 @@ class OspGrillage:
             else:
                 print("inside else- else")
                 for z_group in self.common_grillage_element_z_group[member]:
+                    print(z_group)
                     # if specific group is specified, assign grillage member to specific groups only
                     if specific_group and z_group in specific_group_list:
                         print("1")
