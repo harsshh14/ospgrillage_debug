@@ -890,7 +890,7 @@ class OspGrillage:
                     ele_tag_to_command_dict[ele[0]] = ele_str
             
 
-        if grillage_member_obj.section.unit_width:
+        elif grillage_member_obj.section.unit_width:
             if member == self.common_grillage_element_keys[-1]:
                 for ele in self.Mesh_obj.trans_ele:
                     print("inside trans_ele loop")
