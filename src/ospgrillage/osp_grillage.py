@@ -2077,6 +2077,7 @@ class OspGrillage:
 
         if selected_load_case:
             all_flag = False  # overwrite all flag to be false
+        print(f"all_flag- {all_flag}")
         selected_moving_load_lc_list = None
         # check if kwargs other than load_case are specified
         # if all([kwargs, selected_load_case is None]):
@@ -2120,7 +2121,10 @@ class OspGrillage:
             raise Exception(
                 "missing kwargs for run options: hint: requires input for `load_case=`"
             )
-
+        print("selected_basic_lc")
+        print(selected_basic_lc)
+        print("selected_moving_load_lc_list")
+        print(selected_moving_load_lc_list)
         # run basic load case
         for load_case_dict in selected_basic_lc:
             # create analysis object, run and get results
