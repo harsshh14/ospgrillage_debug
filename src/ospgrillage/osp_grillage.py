@@ -792,6 +792,7 @@ class OspGrillage:
         member: str = None,
         specific_group: int = None,
         specific_span: int = None,
+        custom_elements: list = None,
     ):
         """
         Set `GrillageMember` instance object to elements of grillage members.
@@ -823,10 +824,10 @@ class OspGrillage:
         """
         if self.diagnostics:
             print("Setting member: {} of model".format(member))
-        if member is None:
-            raise ValueError(
-                "Missing target elements of grillage model to be assigned. Hint, member="
-            )
+        # if member is None:
+        #     raise ValueError(
+        #         "Missing target elements of grillage model to be assigned. Hint, member="
+        #     )
         specific_group_list = []
         if not isinstance(specific_group, list):
             specific_group_list = [specific_group]
@@ -850,27 +851,35 @@ class OspGrillage:
 
         ele_width = 1  # set default ele width 1
         # if member properties is based on unit width (e.g. slab elements), get width of element and assign properties
-        if grillage_member_obj.section.unit_width:
-            if member == self.common_grillage_element_keys[-1]:
-                for ele in self.Mesh_obj.trans_ele:
+
+        
+        if custom_elements is not None:
+            result = [subarray for subarray in self.Mesh_obj.trans_ele if subarray[0] in custom_elements]
+
+            for ele in result:
+                    print("yes")
                     n1 = ele[1]  # node i
                     n2 = ele[2]  # node j
                     node_tag_list = [n1, n2]
                     # get node width of node_i and node_j
                     lis_1 = self.Mesh_obj.node_width_x_dict[n1]
+                    # print(lis_1)
                     lis_2 = self.Mesh_obj.node_width_x_dict[n2]
+                    # print(lis_2)
                     ele_width = 1
                     ele_width_record = []
                     # for the two list of vicinity nodes, find their distance and store in ele_width_record
                     for lis in [lis_1, lis_2]:
                         if len(lis) == 1:
+                            print("len 1")
                             ele_width_record.append(
                                 np.sqrt(
                                     lis[0][0] ** 2 + lis[0][1] ** 2 + lis[0][2] ** 2
                                 )
                                 / 2
                             )
-                        elif len(lis) >= 2:
+                        elif len(lis) >= 2:    # this one runs always
+                            print("len >2")
                             ele_width_record.append(
                                 (
                                     np.sqrt(
@@ -883,6 +892,7 @@ class OspGrillage:
                                 / 2
                             )
                         else:
+                            # print("break")
                             #
                             break  # has assigned element, continue to next check
                     ele_width = np.mean(
@@ -890,6 +900,7 @@ class OspGrillage:
                     )  # if node lies between a triangular and quadrilateral grid, get mean between
                     # both width
                     # here take the average width in x directions
+                    ''' this ele_str contains the data for transverse elements'''
                     ele_str = grillage_member_obj.get_element_command_str(
                         ele_tag=ele[0],
                         node_tag_list=node_tag_list,
@@ -898,12 +909,75 @@ class OspGrillage:
                         materialtag=material_tag,
                         sectiontag=section_tag,
                     )
+                    # print(ele_str)
+                    ele_command_list.append(ele_str)
+                    ele_tag_to_command_dict[ele[0]] = ele_str
+            
+
+        elif grillage_member_obj.section.unit_width:
+            if member == self.common_grillage_element_keys[-1]:
+                for ele in self.Mesh_obj.trans_ele:
+                    print("inside trans_ele loop")
+                    print(ele)
+                    n1 = ele[1]  # node i
+                    n2 = ele[2]  # node j
+                    node_tag_list = [n1, n2]
+                    # get node width of node_i and node_j
+                    lis_1 = self.Mesh_obj.node_width_x_dict[n1]
+                    # print(lis_1)
+                    lis_2 = self.Mesh_obj.node_width_x_dict[n2]
+                    # print(lis_2)
+                    ele_width = 1
+                    ele_width_record = []
+                    # for the two list of vicinity nodes, find their distance and store in ele_width_record
+                    for lis in [lis_1, lis_2]:
+                        if len(lis) == 1:
+                            # print("len 1")
+                            ele_width_record.append(
+                                np.sqrt(
+                                    lis[0][0] ** 2 + lis[0][1] ** 2 + lis[0][2] ** 2
+                                )
+                                / 2
+                            )
+                        elif len(lis) >= 2:    # this one runs always
+                            # print("len >2")
+                            ele_width_record.append(
+                                (
+                                    np.sqrt(
+                                        lis[0][0] ** 2 + lis[0][1] ** 2 + lis[0][2] ** 2
+                                    )
+                                    + np.sqrt(
+                                        lis[1][0] ** 2 + lis[1][1] ** 2 + lis[1][2] ** 2
+                                    )
+                                )
+                                / 2
+                            )
+                        else:
+                            # print("break")
+                            #
+                            break  # has assigned element, continue to next check
+                    ele_width = np.mean(
+                        ele_width_record
+                    )  # if node lies between a triangular and quadrilateral grid, get mean between
+                    # both width
+                    # here take the average width in x directions
+                    ''' this ele_str contains the data for transverse elements'''
+                    ele_str = grillage_member_obj.get_element_command_str(
+                        ele_tag=ele[0],
+                        node_tag_list=node_tag_list,
+                        transf_tag=ele[4],
+                        ele_width=ele_width,
+                        materialtag=material_tag,
+                        sectiontag=section_tag,
+                    )
+                    # print(ele_str)
                     ele_command_list.append(ele_str)
                     ele_tag_to_command_dict[ele[0]] = ele_str
 
             elif member == "start_edge" or member == "end_edge":
                 for edge_group in self.common_grillage_element_z_group[member]:
                     for edge_ele in self.Mesh_obj.edge_group_to_ele[edge_group]:
+                        # print("ele_str")
                         edge_ele_width = 0.5  # nominal half -m width
                         node_tag_list = [edge_ele[1], edge_ele[2]]
                         ele_str = grillage_member_obj.get_element_command_str(
@@ -914,13 +988,17 @@ class OspGrillage:
                             materialtag=material_tag,
                             sectiontag=section_tag,
                         )
+                        print(ele_str)
                         ele_command_list.append(ele_str)
+                        print(ele_command_list)
+                        
                         ele_tag_to_command_dict[edge_ele[0]] = ele_str
 
             ele_group_to_command_dict[0] = ele_command_list
         else:  # non-unit width member assignment
             if member == self.common_grillage_element_keys[-1]:
                 ele_list = self.Mesh_obj.trans_ele
+                print("inside loop 3")
 
                 if specific_span:  # filter for specific span elements only
                     ele_list = [
@@ -940,20 +1018,26 @@ class OspGrillage:
                 for nth, ele in enumerate(ele_list):
                     ele_tag_to_command_dict[ele[0]] = ele_command_list[nth]
             else:
+                print("inside else- else")
                 for z_group in self.common_grillage_element_z_group[member]:
+                    print(z_group)
                     # if specific group is specified, assign grillage member to specific groups only
                     if specific_group and z_group in specific_group_list:
+                        print("1")
                         continue  # go to next group
 
                     elif member == "start_edge" or member == "end_edge":
+                        print("2")
                         ele_list = self.Mesh_obj.edge_group_to_ele[
                             z_group
                         ]  # here z group represents the edge group instead
 
                     elif member == self.common_grillage_element_keys[-2]:
+                        print("3")
                         ele_list = self.Mesh_obj.connect_ele
 
                     else:
+                        print("4")
                         ele_list = self.Mesh_obj.z_group_to_ele[z_group]
 
                     if isinstance(
@@ -972,6 +1056,8 @@ class OspGrillage:
                         material_tag=material_tag,
                         section_tag=section_tag,
                     )
+                    print("ele_command_list")
+                    print(ele_command_list)
 
                     ele_group_to_command_dict[z_group] = ele_command_list
 
