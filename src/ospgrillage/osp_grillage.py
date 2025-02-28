@@ -2742,10 +2742,11 @@ class Analysis:
         """
         if not self.pyfile:
             # first loop extract node displacements
-            for node_tag in range(1,157):
+            for node_tag in ops.getNodeTags():
                 ops.reactions()
                 disp_list = ops.nodeReaction(node_tag)
-                if (disp_list[1]/1000 > 0.01):
+                rxn_val=disp_list[1]/1000
+                if rxn_val > 0.01:
                     print(f"Node Tag: {node_tag}, Displacement List: {disp_list[1]/1000}")
                 # self.node_disp.setdefault(node_tag, disp_list)
 
