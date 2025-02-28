@@ -2741,12 +2741,26 @@ class Analysis:
         :return: Stores results in global_ele_force and node_disp class variable
         """
         if not self.pyfile:
-            # first loop extract node displacements
-            for node_tag in range(1,13):
-                ops.reactions()
-                disp_list = ops.nodeReaction(node_tag)
-                print(f"Node Tag: {node_tag}, Displacement List: {disp_list[1]/1000}")
+
+            da_list = []
+            for node_tag in range(1, num_long_grid * 2 + 1):  # Adjust range if necessary
+                QRS.reactions()
+                disp_list = QRS.nodeReaction(node_tag)
+                print(f"Node Tag: {node_tag}, Displacement List: {disp_list}")
                 self.node_disp.setdefault(node_tag, disp_list)
+            
+                # Create DataArray with node_tag as a coordinate and handle 2D structure
+                da = xr.DataArray(
+                    [disp_list],  # Shape (1, n_components) to create 2D array
+                    dims=("dim_0", "component"),
+                    coords={"dim_0": [node_tag]}
+                )
+                da_list.append(da)
+            
+            # Concatenate along 'dim_0' and rename to 'support_reactions'
+            da = xr.concat(da_list, dim="dim_0")
+            da = da.rename({"dim_0": "support_reactions"})
+            da
 
             # loop through all elements in Mesh, extract local forces
             for ele_tag in ops.getEleTags():
