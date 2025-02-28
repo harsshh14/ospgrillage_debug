@@ -2742,11 +2742,12 @@ class Analysis:
         """
         if not self.pyfile:
             # first loop extract node displacements
-            for node_tag in range(1,13):
+            for node_tag in range(1,157):
                 ops.reactions()
                 disp_list = ops.nodeReaction(node_tag)
-                print(f"Node Tag: {node_tag}, Displacement List: {disp_list[1]/1000}")
-                self.node_disp.setdefault(node_tag, disp_list)
+                if (disp_list[1]/1000 > 0.01):
+                    print(f"Node Tag: {node_tag}, Displacement List: {disp_list[1]/1000}")
+                # self.node_disp.setdefault(node_tag, disp_list)
 
             # loop through all elements in Mesh, extract local forces
             for ele_tag in ops.getEleTags():
