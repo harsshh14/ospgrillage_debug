@@ -2743,7 +2743,7 @@ class Analysis:
         if not self.pyfile:
 
             da_list = []
-            for node_tag in range(1, num_long_grid * 2 + 1):  # Adjust range if necessary
+            for node_tag in range(1, 156 + 1):  # Adjust range if necessary
                 QRS.reactions()
                 disp_list = QRS.nodeReaction(node_tag)
                 print(f"Node Tag: {node_tag}, Displacement List: {disp_list}")
