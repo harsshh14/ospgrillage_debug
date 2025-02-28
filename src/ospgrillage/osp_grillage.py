@@ -2744,8 +2744,8 @@ class Analysis:
 
             da_list = []
             for node_tag in range(1, 156 + 1):  # Adjust range if necessary
-                QRS.reactions()
-                disp_list = QRS.nodeReaction(node_tag)
+                ops.reactions()
+                disp_list = ops.nodeReaction(node_tag)
                 print(f"Node Tag: {node_tag}, Displacement List: {disp_list}")
                 self.node_disp.setdefault(node_tag, disp_list)
             
