@@ -1067,6 +1067,7 @@ class OspGrillage:
                     ele_command_list = []
 
         self.element_command_list.update(ele_tag_to_command_dict)
+        print(self.common_grillage_element_z_group)
 
     def set_spring_support(
         self, rotational_spring_stiffness: float, edge_num: int = 0, spring_direction=6
