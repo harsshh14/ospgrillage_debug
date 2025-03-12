@@ -852,8 +852,6 @@ class OspGrillage:
         ele_width = 1  # set default ele width 1
         # if member properties is based on unit width (e.g. slab elements), get width of element and assign properties
 
-        print("common_grillage_element_z_group content:", self.common_grillage_element_z_group)
-
         if custom_elements is not None:
             result = [subarray for subarray in self.Mesh_obj.trans_ele if subarray[0] in custom_elements]
 
@@ -1040,6 +1038,7 @@ class OspGrillage:
                     else:
                         print("4")
                         ele_list = self.Mesh_obj.z_group_to_ele[z_group]
+                        print(ele_list)
 
                     if isinstance(
                         specific_span, int
