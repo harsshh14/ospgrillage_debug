@@ -420,19 +420,25 @@ class OspGrillage:
         # write / execute material and sections
         for mat_str in self.material_command_list:
             if self.pyfile:
+                print("material if part")
                 with open(self.filename, "a") as file_handle:
                     file_handle.write("# Material definition \n")
                     file_handle.write(mat_str)
             else:
+                print("material else part")
+                print(mat_str)
                 eval(mat_str)
                 self.model_command_list.append(mat_str)
 
         for sec_str in self.section_command_list:
             if self.pyfile:
+                print("section command if part")
                 with open(self.filename, "a") as file_handle:
                     file_handle.write("# Create section: \n")
                     file_handle.write(sec_str)
             else:
+                print("section command else part")
+                print(sec_str)
                 eval(sec_str)
                 self.model_command_list.append(sec_str)
 
