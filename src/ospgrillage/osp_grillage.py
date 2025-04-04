@@ -403,11 +403,6 @@ class OspGrillage:
         # Create pin connections if configured
         self._create_pin_connections()
 
-        # Create equalDOF constraints for pin connections
-        if hasattr(self, 'pin_connections'):
-            for node_pair in self.pin_connections['equal_dof_pairs']:
-                self._write_equal_dof([node_pair], dof=[1, 2, 3])  # Only constrain translations
-
         # create the result object for the grillage model
         self.results = Results(self.Mesh_obj)
         self._write_rigid_link()
@@ -2550,44 +2545,28 @@ class OspGrillage:
         # remove all results
         self.results = Results(self.Mesh_obj)  # reset results
 
-    def add_pin_connections(self, nodes_list=None, axial_shear_stiffness=1e8):
+    def add_pin_connections(self, nodes_list=None):
         """
         Add pin connections using zero-length elements at specified nodes or all nodes.
-        The pin connections have high stiffness for axial and shear directions but allow rotation.
-        Must be called before create_osp_model().
+        Creates three materials:
+        - High stiffness (1e10) for axial direction
+        - High stiffness (1e10) for shear direction
+        - Very low stiffness (1e-6) for rotational direction to simulate free rotation
 
         :param nodes_list: List of node tags where to add pin connections. If None, adds to all nodes.
         :type nodes_list: list
-        :param axial_shear_stiffness: Stiffness value for axial and shear directions (default: 1e8)
-        :type axial_shear_stiffness: float
         """
         # If no nodes specified, use all nodes
         if nodes_list is None:
             nodes_list = list(self.Mesh_obj.node_spec.keys())
 
-        # Create material for zero length elements
-        pin_material = create_material(
-            ops_mat_type="Elastic", 
-            E=axial_shear_stiffness
-        )
-
-        # Create section for zero length elements
-        pin_section = create_section(op_ele_type="zeroLength")
-        
-        # Create member with the material and section
-        pin_member = create_member(section=pin_section, material=pin_material)
-        
-        # Get material tag using the member object
-        material_tag = self._write_material(member=pin_member)
-
         # Store pin connection data for use during model creation
         self.pin_connections = {
             'nodes_list': nodes_list,
-            'material_tag': material_tag,
-            'pin_member': pin_member,
             'new_nodes': [],
             'pin_elements': [],
-            'equal_dof_pairs': []
+            'material_commands': [],
+            'element_commands': []
         }
 
         if self.diagnostics:
@@ -2602,7 +2581,23 @@ class OspGrillage:
 
         pin_data = self.pin_connections
         
+        # Create materials for different directions
+        mat_tags = [11, 12, 13]  # Material tags for axial, shear, and rotation
+        stiffness = [1e10, 1e10, 1e-6]  # Corresponding stiffness values
+        
+        # Create material commands
+        for mat_tag, stiff in zip(mat_tags, stiffness):
+            mat_cmd = f"ops.uniaxialMaterial('Elastic', {mat_tag}, {stiff})\n"
+            if self.pyfile:
+                with open(self.filename, "a") as file_handle:
+                    file_handle.write(mat_cmd)
+            else:
+                eval(mat_cmd)
+                self.model_command_list.append(mat_cmd)
+        
         # Create coincident nodes and zero-length elements
+        ele_tag_start = 1000  # Starting tag for pin elements
+        
         for node_tag in pin_data['nodes_list']:
             # Get original node coordinates
             node_coord = self.Mesh_obj.node_spec[node_tag]["coordinate"]
@@ -2619,24 +2614,26 @@ class OspGrillage:
             }
             pin_data['new_nodes'].append(new_node_tag)
 
-            # Create zero-length element between original and new node
-            ele_tag = self.global_ele_counter
-            nodes = [node_tag, new_node_tag]
+            # Create node command
+            node_cmd = f"ops.node({new_node_tag}, {node_coord[0]}, {node_coord[1]}, {node_coord[2]})\n"
+            if self.pyfile:
+                with open(self.filename, "a") as file_handle:
+                    file_handle.write(node_cmd)
+            else:
+                eval(node_cmd)
+                self.model_command_list.append(node_cmd)
+
+            # Create zero-length element
+            ele_cmd = f"ops.element('zeroLength', {ele_tag_start}, {node_tag}, {new_node_tag}, '-mat', {mat_tags[0]}, {mat_tags[1]}, {mat_tags[2]}, '-dir', 1, 2, 3)\n"
+            if self.pyfile:
+                with open(self.filename, "a") as file_handle:
+                    file_handle.write(ele_cmd)
+            else:
+                eval(ele_cmd)
+                self.model_command_list.append(ele_cmd)
             
-            # Create element command
-            ele_str = pin_data['pin_member'].get_element_command_str(
-                ele_tag=ele_tag,
-                node_tag_list=nodes,
-                materialtag=pin_data['material_tag']
-            )
-
-            # Add element command to list
-            self.element_command_list[ele_tag] = ele_str
-            pin_data['pin_elements'].append(ele_tag)
-            self.global_ele_counter += 1
-
-            # Store equalDOF pair for later creation
-            pin_data['equal_dof_pairs'].append((node_tag, new_node_tag))
+            pin_data['pin_elements'].append(ele_tag_start)
+            ele_tag_start += 1
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -3344,11 +3341,6 @@ class OspGrillageShell(OspGrillage):
 
         # Create pin connections if configured
         self._create_pin_connections()
-
-        # Create equalDOF constraints for pin connections
-        if hasattr(self, 'pin_connections'):
-            for node_pair in self.pin_connections['equal_dof_pairs']:
-                self._write_equal_dof([node_pair], dof=[1, 2, 3])  # Only constrain translations
 
         # create shell element commands
         for ele_str in self.shell_element_command_list:
