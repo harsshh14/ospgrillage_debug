@@ -805,7 +805,6 @@ class OspGrillage:
         member: str = None,
         specific_group: int = None,
         specific_span: int = None,
-        custom_elements: list = None,
     ):
         """
         Set `GrillageMember` instance object to elements of grillage members.
@@ -2570,11 +2569,15 @@ class OspGrillage:
             ops_mat_type="Elastic", 
             E=axial_shear_stiffness
         )
-        material_tag = self._write_material(material=pin_material)
 
         # Create section for zero length elements
         pin_section = create_section(op_ele_type="zeroLength")
+        
+        # Create member with the material and section
         pin_member = create_member(section=pin_section, material=pin_material)
+        
+        # Get material tag using the member object
+        material_tag = self._write_material(member=pin_member)
 
         # Store pin connection data for use during model creation
         self.pin_connections = {
