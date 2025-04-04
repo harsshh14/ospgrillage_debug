@@ -805,6 +805,7 @@ class OspGrillage:
         member: str = None,
         specific_group: int = None,
         specific_span: int = None,
+        custom_elements: list = None
     ):
         """
         Set `GrillageMember` instance object to elements of grillage members.
@@ -3395,6 +3396,7 @@ class OspGrillageShell(OspGrillage):
         member: str = None,
         specific_group: int = None,
         specific_span: int = None,
+        custom_elements: list = None
     ):
         """
         Function to set grillage member class object to elements of grillage members.
