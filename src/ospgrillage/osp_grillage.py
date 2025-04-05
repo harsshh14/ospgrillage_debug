@@ -2576,29 +2576,19 @@ class OspGrillage:
         """
         Internal method to create the pin connections during model creation.
         Creates zero-length elements with:
-        - High stiffness (1e10) for axial direction (dir 1)
-        - High stiffness (1e10) for shear directions (dir 2, 3)
-        - Very low stiffness (1e-6) for rotational directions (dir 4, 5, 6)
+        - High stiffness (1e6) for axial direction (dir 1)
+        - High stiffness (1e6) for shear directions (dir 2, 3)
+        - Rotational DOFs (4,5,6) are left free by omitting them
         """
         if not hasattr(self, 'pin_connections'):
             return
 
         pin_data = self.pin_connections
         
-        # Create materials for different directions
-        # Axial and shear materials (directions 1,2,3)
+        # Create materials for translational directions only (1,2,3)
+        # Using same high stiffness for all translational DOFs
         for i in range(1, 4):
-            mat_cmd = f"ops.uniaxialMaterial('Elastic', {i}, 1e10)\n"
-            if self.pyfile:
-                with open(self.filename, "a") as file_handle:
-                    file_handle.write(mat_cmd)
-            else:
-                eval(mat_cmd)
-                self.model_command_list.append(mat_cmd)
-        
-        # Rotational materials (directions 4,5,6)
-        for i in range(4, 7):
-            mat_cmd = f"ops.uniaxialMaterial('Elastic', {i}, 1e-6)\n"
+            mat_cmd = f"ops.uniaxialMaterial('Elastic', {i}, 1000000.0)\n"
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(mat_cmd)
@@ -2634,12 +2624,10 @@ class OspGrillage:
                 eval(node_cmd)
                 self.model_command_list.append(node_cmd)
 
-            # Create zero-length element with all 6 DOFs
+            # Create zero-length element with only translational DOFs (1,2,3)
             ele_cmd = (f"ops.element('zeroLength', {ele_tag_start}, {node_tag}, {new_node_tag}, "
-                      f"'-mat', 1, 2, 3, 4, 5, 6, "
-                      f"'-dir', 1, 2, 3, 4, 5, 6)\n")
-            print(f" ele_tag_start - {ele_tag_start} , node_tag - {node_tag}, new_node_tag - {new_node_tag} ")
-            print(ele_cmd)
+                      f"'-mat', 1, 2, 3, "
+                      f"'-dir', 1, 2, 3)\n")
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(ele_cmd)
