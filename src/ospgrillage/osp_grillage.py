@@ -2576,8 +2576,8 @@ class OspGrillage:
         """
         Internal method to create the pin connections during model creation.
         Creates zero-length elements with:
-        - High stiffness (1e6) for axial direction (dir 1)
-        - High stiffness (1e6) for shear directions (dir 2, 3)
+        - High stiffness (1e12) for axial direction (dir 1)
+        - High stiffness (1e12) for shear directions (dir 2, 3)
         - Rotational DOFs (4,5,6) are left free by omitting them
         """
         if not hasattr(self, 'pin_connections'):
@@ -2586,9 +2586,9 @@ class OspGrillage:
         pin_data = self.pin_connections
         
         # Create materials for translational directions only (1,2,3)
-        # Using same high stiffness for all translational DOFs
+        # Using very high stiffness for translational DOFs
         for i in range(1, 4):
-            mat_cmd = f"ops.uniaxialMaterial('Elastic', {i}, 1000000.0)\n"
+            mat_cmd = f"ops.uniaxialMaterial('Elastic', {i}, 1e12)\n"
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(mat_cmd)
