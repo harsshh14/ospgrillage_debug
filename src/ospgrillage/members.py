@@ -206,6 +206,7 @@ class GrillageMember:
         tri_ele_flag: bool = False,
         release_y: bool = False,
         release_z: bool = False,
+        validate_releases: bool = True,
     ):
         """
         Init the GrillageMember. Requires two input objects i.e. A :class:`~ospgrillage.material.Material`, and
@@ -221,6 +222,8 @@ class GrillageMember:
         :type release_y: bool
         :param release_z: Flag to add z-direction release (Optional)
         :type release_z: bool
+        :param validate_releases: Flag to validate releases to prevent instability (Optional)
+        :type validate_releases: bool
         """
         self.member_name = member_name
         self.section = section
@@ -229,6 +232,7 @@ class GrillageMember:
         self.tri_ele_flag = tri_ele_flag
         self.release_y = release_y
         self.release_z = release_z
+        self.validate_releases = validate_releases
         self.section_command_flag = True
         self.material_command_flag = True
         if any(
@@ -391,6 +395,17 @@ class GrillageMember:
         """
         section_input = None
         ele_str = None
+        
+        # Validate releases if enabled
+        if self.validate_releases and (self.release_y or self.release_z):
+            # Don't allow both y and z releases on same element as it creates a mechanism
+            if self.release_y and self.release_z:
+                raise ValueError("Cannot release both y and z directions on the same element as it would create a mechanism")
+            
+            # Don't allow releases on elements that would create instability
+            if len(node_tag_list) != 2:
+                raise ValueError("Releases can only be applied to 2-node elements")
+
         if self.section.op_ele_type == "ElasticTimoshenkoBeam":
             section_input = self.get_member_prop_arguments(ele_width)
             # Add releases if specified
