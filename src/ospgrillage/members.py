@@ -207,6 +207,7 @@ class GrillageMember:
         release_y: bool = False,
         release_z: bool = False,
         validate_releases: bool = True,
+        is_transverse_slab: bool = False,
     ):
         """
         Init the GrillageMember. Requires two input objects i.e. A :class:`~ospgrillage.material.Material`, and
@@ -224,6 +225,8 @@ class GrillageMember:
         :type release_z: bool
         :param validate_releases: Flag to validate releases to prevent instability (Optional)
         :type validate_releases: bool
+        :param is_transverse_slab: Flag to indicate if this is a transverse slab member (Optional)
+        :type is_transverse_slab: bool
         """
         self.member_name = member_name
         self.section = section
@@ -233,6 +236,7 @@ class GrillageMember:
         self.release_y = release_y
         self.release_z = release_z
         self.validate_releases = validate_releases
+        self.is_transverse_slab = is_transverse_slab
         self.section_command_flag = True
         self.material_command_flag = True
         if any(
@@ -405,6 +409,17 @@ class GrillageMember:
             # Don't allow releases on elements that would create instability
             if len(node_tag_list) != 2:
                 raise ValueError("Releases can only be applied to 2-node elements")
+            
+            # Special validation for transverse slabs
+            if self.is_transverse_slab:
+                # For transverse slabs, only allow z-direction release
+                if self.release_y:
+                    raise ValueError("Cannot add y-direction release to transverse slab elements")
+                # Only allow z-direction release if it's not at the support
+                if self.release_z:
+                    # Check if either node is at a support
+                    if any(node in self.Mesh_obj.edge_node_recorder for node in node_tag_list):
+                        raise ValueError("Cannot add z-direction release to transverse slab elements at supports")
 
         if self.section.op_ele_type == "ElasticTimoshenkoBeam":
             section_input = self.get_member_prop_arguments(ele_width)
