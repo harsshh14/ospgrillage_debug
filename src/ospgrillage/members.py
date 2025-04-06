@@ -204,6 +204,8 @@ class GrillageMember:
         member_name: str = "Undefined",
         quad_ele_flag: bool = False,
         tri_ele_flag: bool = False,
+        release_y: bool = False,
+        release_z: bool = False,
     ):
         """
         Init the GrillageMember. Requires two input objects i.e. A :class:`~ospgrillage.material.Material`, and
@@ -215,12 +217,18 @@ class GrillageMember:
         :type material: :class:`~ospgrillage.material.Material`
         :param member_name: Name of the grillage member (Optional)
         :type member_name: str
+        :param release_y: Flag to add y-direction release (Optional)
+        :type release_y: bool
+        :param release_z: Flag to add z-direction release (Optional)
+        :type release_z: bool
         """
         self.member_name = member_name
         self.section = section
         self.material = material
         self.quad_flag = quad_ele_flag
         self.tri_ele_flag = tri_ele_flag
+        self.release_y = release_y
+        self.release_z = release_z
         self.section_command_flag = True
         self.material_command_flag = True
         if any(
@@ -381,39 +389,42 @@ class GrillageMember:
         """Return a list of OpenSeesPy element command for the member.
         This function is handled by OspGrillage class.
         """
-        # ```
-        # Function called within OpsGrillage class `set_member()` function.
-        #
-        # For shell elements, n1 n2 n3 n4 are counter clockwise node (n1 being node in quadrant -1 , -1 ).
-        #
-        # Procedure to be called
-        # 1) OpsGrillage assigns the material and section first, then returns the tag of material and section
-        # 2) OpsGrillage calls get_element_command_str of GrillageMember, then it takes in material section and returns
-        #  the element command ops.element() for the respective grillage member
-
-        # format of each ele sublist
-        # [node i, node j, ele group, ele tag, transtag]
-        # ```
         section_input = None
         ele_str = None
         if self.section.op_ele_type == "ElasticTimoshenkoBeam":
             section_input = self.get_member_prop_arguments(ele_width)
-            ele_str = 'ops.element("{type}", {tag}, *{node_tag_list}, *{memberprop}, {transftag}, {mass})\n'.format(
+            # Add releases if specified
+            release_str = ""
+            if self.release_z:
+                release_str += ", '-releasez', 3"
+            if self.release_y:
+                release_str += ", '-releasey', 3"
+                
+            ele_str = 'ops.element("{type}", {tag}, *{node_tag_list}, *{memberprop}, {transftag}{releases}, {mass})\n'.format(
                 type=self.section.op_ele_type,
                 tag=ele_tag,
                 node_tag_list=node_tag_list,
                 memberprop=section_input,
                 transftag=transf_tag,
+                releases=release_str,
                 mass=self.mass,
             )
         elif self.section.op_ele_type == "elasticBeamColumn":
             section_input = self.get_member_prop_arguments(ele_width)
-            ele_str = 'ops.element("{type}", {tag}, *{node_tag_list}, *{memberprop}, {transftag}, {mass})\n'.format(
+            # Add releases if specified
+            release_str = ""
+            if self.release_z:
+                release_str += ", '-releasez', 3"
+            if self.release_y:
+                release_str += ", '-releasey', 3"
+                
+            ele_str = 'ops.element("{type}", {tag}, *{node_tag_list}, *{memberprop}, {transftag}{releases}, {mass})\n'.format(
                 type=self.section.op_ele_type,
                 tag=ele_tag,
                 node_tag_list=node_tag_list,
                 memberprop=section_input,
                 transftag=transf_tag,
+                releases=release_str,
                 mass=self.mass,
             )
         elif self.section.op_ele_type == "nonlinearBeamColumn":
