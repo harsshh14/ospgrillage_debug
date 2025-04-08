@@ -2617,6 +2617,8 @@ class OspGrillage:
 
             # Create node command
             node_cmd = f"ops.node({new_node_tag}, {node_coord[0]}, {node_coord[1]}, {node_coord[2]})\n"
+            print("node_cmd")
+            print(node_cmd)
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(node_cmd)
@@ -2628,6 +2630,8 @@ class OspGrillage:
             ele_cmd = (f"ops.element('zeroLength', {ele_tag_start}, {node_tag}, {new_node_tag}, "
                       f"'-mat', 1, 2, 3, "
                       f"'-dir', 1, 2, 3)\n")
+            print("ele_cmd")
+            print(ele_cmd)
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(ele_cmd)
