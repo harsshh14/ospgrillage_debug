@@ -2587,7 +2587,7 @@ class OspGrillage:
     
         if self.diagnostics:
             print(f"\nTotal intersection nodes to be pinned: {len(nodes_list)}")
-    
+        
     def _create_pin_connections(self):
         """
         Internal method to create the pin connections during model creation.
@@ -2629,6 +2629,18 @@ class OspGrillage:
         # Create coincident nodes and zero-length elements
         ele_tag_start = 1000
         max_node_tag = max(list(self.Mesh_obj.node_spec.keys()))
+        
+        # First, update all transformation tags to 2
+        print("\n=== Updating Transformation Tags ===")
+        for ele in self.Mesh_obj.long_ele:
+            if ele[4] != 2:  # if transformation tag is not 2
+                print(f"Updating longitudinal element {ele[0]} transformation tag: {ele[4]} -> 2")
+                ele[4] = 2
+                
+        for ele in self.Mesh_obj.trans_ele:
+            if ele[4] != 2:  # if transformation tag is not 2
+                print(f"Updating transverse element {ele[0]} transformation tag: {ele[4]} -> 2")
+                ele[4] = 2
         
         for node_tag in pin_data['nodes_list']:
             print(f"\nProcessing intersection at node {node_tag}:")
@@ -2707,8 +2719,8 @@ class OspGrillage:
         print("\n=== Pin Connection Creation Complete ===")
         print(f"Total nodes processed: {len(pin_data['nodes_list'])}")
         print(f"Total new nodes created: {len(pin_data['new_nodes'])}")
-        print(f"Total zero-length elements created: {len(pin_data['pin_elements'])}")    
-
+        print(f"Total zero-length elements created: {len(pin_data['pin_elements'])}")
+         
 # ---------------------------------------------------------------------------------------------------------------------
 class Analysis:
     """
