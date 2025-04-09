@@ -2544,7 +2544,7 @@ class OspGrillage:
 
         # remove all results
         self.results = Results(self.Mesh_obj)  # reset results
-
+    
     def add_pin_connections(self, nodes_list=None):
         """
         Add pin connections using zero-length elements at specified nodes or all nodes.
@@ -2552,14 +2552,30 @@ class OspGrillage:
         - High stiffness (1e10) for axial direction
         - High stiffness (1e10) for shear direction
         - Very low stiffness (1e-6) for rotational direction to simulate free rotation
-
+    
         :param nodes_list: List of node tags where to add pin connections. If None, adds to all nodes.
         :type nodes_list: list
         """
         # If no nodes specified, use all nodes
         if nodes_list is None:
-            nodes_list = list(self.Mesh_obj.node_spec.keys())
-
+            # Only use nodes that are shared between longitudinal and transverse beams
+            nodes_list = []
+            print("\n=== Analyzing Node Connectivity ===")
+            for node in self.Mesh_obj.node_spec.keys():
+                # Check if node is part of both longitudinal and transverse elements
+                is_long = any(node in [ele[1], ele[2]] for ele in self.Mesh_obj.long_ele)
+                is_trans = any(node in [ele[1], ele[2]] for ele in self.Mesh_obj.trans_ele)
+                if is_long and is_trans:
+                    nodes_list.append(node)
+                    print(f"\nNode {node} is an intersection point:")
+                    print(f"  Coordinates: {self.Mesh_obj.node_spec[node]['coordinate']}")
+                    # Print connected longitudinal elements
+                    long_elements = [ele for ele in self.Mesh_obj.long_ele if node in [ele[1], ele[2]]]
+                    print(f"  Connected longitudinal elements: {long_elements}")
+                    # Print connected transverse elements
+                    trans_elements = [ele for ele in self.Mesh_obj.trans_ele if node in [ele[1], ele[2]]]
+                    print(f"  Connected transverse elements: {trans_elements}")
+    
         # Store pin connection data for use during model creation
         self.pin_connections = {
             'nodes_list': nodes_list,
@@ -2568,10 +2584,10 @@ class OspGrillage:
             'material_commands': [],
             'element_commands': []
         }
-
+    
         if self.diagnostics:
-            print(f"Pin connections configured for {len(nodes_list)} nodes")
-
+            print(f"\nTotal intersection nodes to be pinned: {len(nodes_list)}")
+    
     def _create_pin_connections(self):
         """
         Internal method to create the pin connections during model creation.
@@ -2582,13 +2598,15 @@ class OspGrillage:
         """
         if not hasattr(self, 'pin_connections'):
             return
-
+    
         pin_data = self.pin_connections
         
+        print("\n=== Creating Materials for Pin Connections ===")
         # Create materials for different directions
         # Axial and shear materials (directions 1,2,3)
         for i in range(1, 4):
             mat_cmd = f"ops.uniaxialMaterial('Elastic', {i}, 1e10)\n"
+            print(f"Creating high-stiffness material {i} for direction {i}")
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(mat_cmd)
@@ -2599,6 +2617,7 @@ class OspGrillage:
         # Rotational materials (directions 4,5,6)
         for i in range(4, 7):
             mat_cmd = f"ops.uniaxialMaterial('Elastic', {i}, 1e-6)\n"
+            print(f"Creating low-stiffness material {i} for direction {i}")
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(mat_cmd)
@@ -2606,17 +2625,23 @@ class OspGrillage:
                 eval(mat_cmd)
                 self.model_command_list.append(mat_cmd)
         
+        print("\n=== Creating Pin Connections ===")
         # Create coincident nodes and zero-length elements
-        ele_tag_start = 1000  # Starting tag for pin elements
+        ele_tag_start = 1000
+        max_node_tag = max(list(self.Mesh_obj.node_spec.keys()))
         
         for node_tag in pin_data['nodes_list']:
+            print(f"\nProcessing intersection at node {node_tag}:")
             # Get original node coordinates
             node_coord = self.Mesh_obj.node_spec[node_tag]["coordinate"]
             x_group = self.Mesh_obj.node_spec[node_tag]["x_group"]
             z_group = self.Mesh_obj.node_spec[node_tag]["z_group"]
+            print(f"  Original node coordinates: ({node_coord[0]}, {node_coord[1]}, {node_coord[2]})")
             
             # Create new coincident node
-            new_node_tag = max(list(self.Mesh_obj.node_spec.keys())) + 1
+            new_node_tag = max_node_tag + 1
+            max_node_tag = new_node_tag
+            
             self.Mesh_obj.node_spec[new_node_tag] = {
                 "tag": new_node_tag,
                 "coordinate": node_coord,
@@ -2624,24 +2649,23 @@ class OspGrillage:
                 "z_group": z_group
             }
             pin_data['new_nodes'].append(new_node_tag)
-
+            print(f"  Created coincident node {new_node_tag} at same location")
+    
             # Create node command
             node_cmd = f"ops.node({new_node_tag}, {node_coord[0]}, {node_coord[1]}, {node_coord[2]})\n"
-            print("node_cmd")
-            print(node_cmd)
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(node_cmd)
             else:
                 eval(node_cmd)
                 self.model_command_list.append(node_cmd)
-
+    
             # Create zero-length element with all 6 DOFs
             ele_cmd = (f"ops.element('zeroLength', {ele_tag_start}, {node_tag}, {new_node_tag}, "
                       f"'-mat', 1, 2, 3, 4, 5, 6, "
                       f"'-dir', 1, 2, 3, 4, 5, 6)\n")
-            print("ele_cmd")
-            print(ele_cmd)
+            print(f"  Created zero-length element {ele_tag_start} connecting nodes {node_tag} and {new_node_tag}")
+            
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(ele_cmd)
@@ -2651,7 +2675,39 @@ class OspGrillage:
             
             pin_data['pin_elements'].append(ele_tag_start)
             ele_tag_start += 1
-
+    
+            # Update element connectivity
+            print("\n  Updating element connectivity:")
+            print("  - Longitudinal beams remain connected to original node", node_tag)
+            # Print connected longitudinal elements before
+            long_elements = [ele for ele in self.Mesh_obj.long_ele if node_tag in [ele[1], ele[2]]]
+            print(f"    Connected longitudinal elements: {long_elements}")
+            
+            # Connect transverse beams to new nodes
+            trans_updates = []
+            for ele in self.Mesh_obj.trans_ele:
+                if ele[1] == node_tag or ele[2] == node_tag:
+                    trans_updates.append(f"    Element {ele[0]}: ")
+                    if ele[1] == node_tag:
+                        print(f"    Updating transverse element {ele[0]}: node {ele[1]} -> {new_node_tag}")
+                        ele[1] = new_node_tag
+                    if ele[2] == node_tag:
+                        print(f"    Updating transverse element {ele[0]}: node {ele[2]} -> {new_node_tag}")
+                        ele[2] = new_node_tag
+            
+            # Print final connectivity
+            print("\n  Final connectivity at this intersection:")
+            print(f"    Original node {node_tag}:")
+            print(f"      - Connected to longitudinal elements: {long_elements}")
+            trans_elements = [ele for ele in self.Mesh_obj.trans_ele if new_node_tag in [ele[1], ele[2]]]
+            print(f"    New node {new_node_tag}:")
+            print(f"      - Connected to transverse elements: {trans_elements}")
+            print(f"    Connected by zero-length element: {ele_tag_start-1}")
+    
+        print("\n=== Pin Connection Creation Complete ===")
+        print(f"Total nodes processed: {len(pin_data['nodes_list'])}")
+        print(f"Total new nodes created: {len(pin_data['new_nodes'])}")
+        print(f"Total zero-length elements created: {len(pin_data['pin_elements'])}")    
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Analysis:
