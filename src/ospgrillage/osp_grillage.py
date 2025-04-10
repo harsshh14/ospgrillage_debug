@@ -1587,182 +1587,194 @@ class OspGrillage:
     # Setter for Point loads
     def _assign_load_to_four_node(self, point, mag, shape_func="linear"):
         """Assign point load to four nodes in quadrilateral element or grid"""
-        node_mx = []
-        node_mz = []
-        # search grid where the point lies in
-        grid_nodes, _ = self._get_point_load_nodes(point=point)
-        if grid_nodes is None:
-            load_str = []
-            return load_str
-        # if corner or edge grid with 3 nodes, run specific assignment for triangular grids
-        # extract coordinates
-        p1 = self.Mesh_obj.node_spec[grid_nodes[0]]["coordinate"]
-        p2 = self.Mesh_obj.node_spec[grid_nodes[1]]["coordinate"]
-        p3 = self.Mesh_obj.node_spec[grid_nodes[2]]["coordinate"]
-
-        point_list = [
-            Point(p1[0], p1[1], p1[2]),
-            Point(p2[0], p2[1], p2[2]),
-            Point(p3[0], p3[1], p3[2]),
-        ]
-        if len(grid_nodes) == 3:
-            sorted_list, sorted_node_tag = sort_vertices(point_list, grid_nodes)
-            Nv = ShapeFunction.linear_triangular(
-                x=point[0],
-                z=point[2],
-                x1=sorted_list[0].x,
-                z1=sorted_list[0].z,
-                x2=sorted_list[1].x,
-                z2=sorted_list[1].z,
-                x3=sorted_list[2].x,
-                z3=sorted_list[2].z,
-            )
-            node_load = [mag * n for n in Nv]
-            node_mx = np.zeros(len(node_load))
-            node_mz = np.zeros(len(node_load))
-        else:  # else run assignment for quadrilateral grids
-            # extract coordinates of fourth point
-            p4 = self.Mesh_obj.node_spec[grid_nodes[3]][
-                "coordinate"
-            ]  # get coordinate of fourth point
-            point_list.append(Point(p4[0], p4[1], p4[2]))
-            sorted_list, sorted_node_tag = sort_vertices(point_list, grid_nodes)
-            # mapping coordinates to natural coordinate, then finds eta (x) and zeta (z) of the point xp,zp
-            eta, zeta = solve_zeta_eta(
-                xp=point[0],
-                zp=point[2],
-                x1=sorted_list[0].x,
-                z1=sorted_list[0].z,
-                x2=sorted_list[1].x,
-                z2=sorted_list[1].z,
-                x3=sorted_list[2].x,
-                z3=sorted_list[2].z,
-                x4=sorted_list[3].x,
-                z4=sorted_list[3].z,
-            )
-
-            # access shape function of line load
-            if shape_func == "hermite":
-                Nv, Nmx, Nmz = ShapeFunction.hermite_shape_function_2d(eta, zeta)
-                node_mx = [mag * n for n in Nmx]
-                # Mz
-                node_mz = [mag * n for n in Nmz]
-            else:  # linear shaep function
-                Nv = ShapeFunction.linear_shape_function(eta, zeta)
-            # Nv, Nmx, Nmz = ShapeFunction.hermite_shape_function_2d(eta, zeta)
-            # Fy
-            node_load = [mag * n for n in Nv]
+        print("\n=== Load Distribution to Nodes ===")
+        print(f"Load Point: x={point[0]:.3f}, y={point[1]:.3f}, z={point[2]:.3f}")
+        print(f"Total Load Magnitude: {mag:.3f}")
+        print(f"Shape Function: {shape_func}")
 
         load_str = []
-        if shape_func == "hermite":
-            for count, node in enumerate(sorted_node_tag):
-                load_str.append(
-                    "ops.load({pt}, *{val})\n".format(
-                        pt=node,
-                        val=[0, node_load[count], 0, node_mx[count], 0, node_mz[count]],
-                    )
+        # find grid which encompasses the point
+        grid_found = False
+        for grid_tag, grid_nodes in self.Mesh_obj.grid_number_dict.items():
+            point_list = []
+            # get coordinates of all nodes in grid
+            print(f"\nChecking Grid {grid_tag}:")
+            for node_tag in grid_nodes:
+                coord = self.Mesh_obj.node_spec[node_tag]["coordinate"]
+                coord_point = Point(coord[0], coord[1], coord[2])
+                point_list.append(coord_point)
+                print(f"  Node {node_tag}: x={coord[0]:.3f}, y={coord[1]:.3f}, z={coord[2]:.3f}")
+
+            # check if point lies in grid
+            if is_point_in_polygon(point_list, point):
+                print(f"\nPoint found in Grid {grid_tag}")
+                grid_found = True
+                # get nodes of grid
+                node_1 = grid_nodes[0]
+                node_2 = grid_nodes[1]
+                node_3 = grid_nodes[2]
+                node_4 = grid_nodes[3]
+
+                # get coordinates of nodes
+                coord_1 = self.Mesh_obj.node_spec[node_1]["coordinate"]
+                coord_2 = self.Mesh_obj.node_spec[node_2]["coordinate"]
+                coord_3 = self.Mesh_obj.node_spec[node_3]["coordinate"]
+                coord_4 = self.Mesh_obj.node_spec[node_4]["coordinate"]
+
+                print("\nGrid Corner Nodes:")
+                print(f"Node {node_1}: x={coord_1[0]:.3f}, y={coord_1[1]:.3f}, z={coord_1[2]:.3f}")
+                print(f"Node {node_2}: x={coord_2[0]:.3f}, y={coord_2[1]:.3f}, z={coord_2[2]:.3f}")
+                print(f"Node {node_3}: x={coord_3[0]:.3f}, y={coord_3[1]:.3f}, z={coord_3[2]:.3f}")
+                print(f"Node {node_4}: x={coord_4[0]:.3f}, y={coord_4[1]:.3f}, z={coord_4[2]:.3f}")
+
+                # get shape function values
+                N1, N2, N3, N4 = self._get_shape_function_values(
+                    point=point,
+                    coord_1=coord_1,
+                    coord_2=coord_2,
+                    coord_3=coord_3,
+                    coord_4=coord_4,
+                    shape_func=shape_func,
                 )
-        else:
-            for count, node in enumerate(sorted_node_tag):
-                load_str.append(
-                    "ops.load({pt}, *{val})\n".format(
-                        pt=node, val=[0, node_load[count], 0, 0, 0, 0]
+
+                print("\nShape Function Values:")
+                print(f"N1 (Node {node_1}): {N1:.4f}")
+                print(f"N2 (Node {node_2}): {N2:.4f}")
+                print(f"N3 (Node {node_3}): {N3:.4f}")
+                print(f"N4 (Node {node_4}): {N4:.4f}")
+
+                # calculate nodal forces
+                P1 = mag * N1
+                P2 = mag * N2
+                P3 = mag * N3
+                P4 = mag * N4
+
+                print("\nDistributed Nodal Forces:")
+                print(f"Node {node_1}: {P1:.3f}")
+                print(f"Node {node_2}: {P2:.3f}")
+                print(f"Node {node_3}: {P3:.3f}")
+                print(f"Node {node_4}: {P4:.3f}")
+                print(f"Sum of distributed forces: {(P1 + P2 + P3 + P4):.3f} (should equal total load: {mag:.3f})")
+
+                # create load string
+                if P1 != 0:
+                    load_str.append(
+                        "ops.load({}, *[0,{},0,0,0,0])\n".format(node_1, P1)
                     )
-                )
+                if P2 != 0:
+                    load_str.append(
+                        "ops.load({}, *[0,{},0,0,0,0])\n".format(node_2, P2)
+                    )
+                if P3 != 0:
+                    load_str.append(
+                        "ops.load({}, *[0,{},0,0,0,0])\n".format(node_3, P3)
+                    )
+                if P4 != 0:
+                    load_str.append(
+                        "ops.load({}, *[0,{},0,0,0,0])\n".format(node_4, P4)
+                    )
+
+                print("\nGenerated OpenSees Commands:")
+                for cmd in load_str:
+                    print(cmd.strip())
+                break
+
+        if not grid_found:
+            print("\nWARNING: Point not found in any grid!")
+            print(f"Point coordinates: x={point[0]:.3f}, y={point[1]:.3f}, z={point[2]:.3f}")
+
+        print("=== Load Distribution Complete ===\n")
         return load_str
 
     # Setter for Line loads and above
-    def _assign_line_to_four_node(
-        self, line_load_obj, line_grid_intersect, line_ele_colinear
-    ) -> list:
-        # Function to assign line load to mesh. Procedure to assign line load is as follows:
-        # . get properties of line on the grid
-        # . convert line load to equivalent point load
-        # . Find position of equivalent point load
-        # . Runs assignment for point loads function (assign_point_to_four_node) using equivalent point load
-
-        # loop each grid
+    def _assign_line_to_four_node(self, line_load_obj, line_grid_intersect, line_ele_colinear):
+        print("\n=== Processing Line Load Distribution ===")
+        print(f"Line Load Name: {line_load_obj.name}")
         load_str_line = []
-        for grid, points in line_grid_intersect.items():
-            if (
-                "ends" not in points.keys()
-            ):  # hard code fix to solve colinear problems - see API notes
-                continue  # continue to next load assignment
-            # extract two point of intersections within the grid
-            # depending on the type of line intersections
-            if len(points["long_intersect"]) >= 2:  # long, long
-                p1 = points["long_intersect"][0]
-                p2 = points["long_intersect"][1]
-            elif len(points["trans_intersect"]) >= 2:  # trans trans
-                p1 = points["trans_intersect"][0]
-                p2 = points["trans_intersect"][1]
-            elif points["long_intersect"] and points["trans_intersect"]:  # long, trans
-                p1 = points["long_intersect"][0]
-                p2 = points["trans_intersect"][0]
-            elif points["long_intersect"] and points["edge_intersect"]:  # long, edge
-                p1 = points["long_intersect"][0]
-                p2 = points["edge_intersect"][0]
-            elif points["trans_intersect"] and points["edge_intersect"]:  # trans, edge
-                p1 = points["trans_intersect"][0]
-                p2 = points["edge_intersect"][0]
-            elif points["long_intersect"] and points["ends"]:  # long, ends
-                p1 = points["long_intersect"][0]
-                p2 = points["ends"][0]
-            elif points["trans_intersect"] and points["ends"]:  # trans, ends
-                p1 = points["trans_intersect"][0]
-                p2 = points["ends"][0]
-            elif points["edge_intersect"] and points["ends"]:  # edge, ends
-                p1 = points["edge_intersect"][0]
-                p2 = points["ends"][0]
-            else:
-                p1 = [0, 0, 0]
-                p2 = p1
-                continue
 
-            # get length of line
-            L = np.sqrt((p1[0] - p2[0]) ** 2 + (p1[2] - p2[2]) ** 2)
+        # Process grid intersections
+        print("\nProcessing Grid Intersections:")
+        for grid_tag, intersect_list in line_grid_intersect.items():
+            print(f"\nGrid {grid_tag}:")
+            for intersect in intersect_list:
+                p1 = intersect[0]  # start point
+                p2 = intersect[1]  # end point
+                print(f"Intersection Segment:")
+                print(f"  Point 1: x={p1[0]:.3f}, y={p1[1]:.3f}, z={p1[2]:.3f}")
+                print(f"  Point 2: x={p2[0]:.3f}, y={p2[1]:.3f}, z={p2[2]:.3f}")
 
-            # get magnitudes at point 1 and point 2
-            w1 = line_load_obj.interpolate_udl_magnitude([p1[0], 0, p1[1]])
-            w2 = line_load_obj.interpolate_udl_magnitude([p2[0], 0, p2[1]])
+                # Calculate segment length
+                L = get_distance(p1, p2)
+                print(f"  Segment Length: {L:.3f}")
 
-            W = (w1 + w2) / 2
-            # get mid point of line
-            x_bar = ((2 * w1 + w2) / (w1 + w2)) * L / 3  # from p2
-            load_point = line_load_obj.get_point_given_distance(
-                xbar=x_bar, point_coordinate=[p2[0], self.y_elevation, p2[2]]
-            )
+                # Get load magnitudes
+                w1 = line_load_obj.interpolate_udl_magnitude([p1[0], 0, p1[1]])
+                w2 = line_load_obj.interpolate_udl_magnitude([p2[0], 0, p2[1]])
+                print(f"  Load Magnitudes:")
+                print(f"    w1 at p1: {w1:.3f}")
+                print(f"    w2 at p2: {w2:.3f}")
 
-            # uses point load assignment function to assign load point and mag to four nodes in grid
-            load_str = self._assign_load_to_four_node(
-                point=load_point, mag=W, shape_func=line_load_obj.shape_function
-            )
-            load_str_line += load_str  # append to major list for line load
+                W = (w1 + w2) / 2
+                print(f"  Average Load Magnitude: {W:.3f}")
 
-        # loop through all colinear elements
-        # for each colinear element, assign line load to two nodes of element
+                # Calculate load position
+                x_bar = ((2 * w1 + w2) / (w1 + w2)) * L / 3
+                load_point = line_load_obj.get_point_given_distance(
+                    xbar=x_bar, 
+                    point_coordinate=[p2[0], self.y_elevation, p2[2]]
+                )
+                print(f"  Load Application Point:")
+                print(f"    x={load_point[0]:.3f}, y={load_point[1]:.3f}, z={load_point[2]:.3f}")
 
+                # Distribute load to nodes
+                print("\n  Distributing load to nodes:")
+                load_str = self._assign_load_to_four_node(
+                    point=load_point, 
+                    mag=W, 
+                    shape_func=line_load_obj.shape_function
+                )
+                load_str_line += load_str
+
+        # Process colinear elements
+        print("\nProcessing Colinear Elements:")
         assigned_ele = []
         for ele in line_ele_colinear:
             if ele[0] not in assigned_ele:
+                print(f"\nElement {ele[0]}:")
                 p1 = ele[1]
                 p2 = ele[2]
-                # get magnitudes at point 1 and point 2
+                print(f"  Node 1: x={p1.x:.3f}, y={p1.y:.3f}, z={p1.z:.3f}")
+                print(f"  Node 2: x={p2.x:.3f}, y={p2.y:.3f}, z={p2.z:.3f}")
+
                 L = get_distance(p1, p2)
+                print(f"  Element Length: {L:.3f}")
+
                 w1 = line_load_obj.interpolate_udl_magnitude([p1.x, p1.y, p1.z])
                 w2 = line_load_obj.interpolate_udl_magnitude([p2.x, p2.y, p2.z])
+                print(f"  Load Magnitudes:")
+                print(f"    w1 at p1: {w1:.3f}")
+                print(f"    w2 at p2: {w2:.3f}")
+
                 W = (w1 + w2) / 2
                 mag = W * L
-                # mag = W
-                # get mid point of line
-                x_bar = ((2 * w1 + w2) / (w1 + w2)) * L / 3  # from p2
+                print(f"  Average Load: {W:.3f}")
+                print(f"  Total Element Load: {mag:.3f}")
+
+                x_bar = ((2 * w1 + w2) / (w1 + w2)) * L / 3
                 load_point = line_load_obj.get_point_given_distance(
-                    xbar=x_bar, point_coordinate=[p2.x, p2.y, p2.z]
+                    xbar=x_bar,
+                    point_coordinate=[p2.x, p2.y, p2.z]
                 )
+                print(f"  Load Application Point:")
+                print(f"    x={load_point[0]:.3f}, y={load_point[1]:.3f}, z={load_point[2]:.3f}")
+
+                print("\n  Distributing load to nodes:")
                 load_str = self._assign_load_to_four_node(point=load_point, mag=mag)
-                load_str_line += load_str  # append to major list for line load
+                load_str_line += load_str
                 assigned_ele.append(ele[0])
-        return load_str_line
+
+        print("\n=== Line Load Distribution Complete ===")
+        return load_str_line    
 
     def _assign_beam_ele_line_load(self, line_load_obj: LineLoading) -> list:
         load_str_line = []
@@ -2544,7 +2556,7 @@ class OspGrillage:
 
         # remove all results
         self.results = Results(self.Mesh_obj)  # reset results
-    
+
     def add_pin_connections(self, nodes_list=None):
         """
         Add pin connections using zero-length elements at specified nodes or all nodes.
@@ -2552,7 +2564,7 @@ class OspGrillage:
         - High stiffness (1e10) for axial direction
         - High stiffness (1e10) for shear direction
         - Very low stiffness (1e-6) for rotational direction to simulate free rotation
-    
+
         :param nodes_list: List of node tags where to add pin connections. If None, adds to all nodes.
         :type nodes_list: list
         """
@@ -2575,7 +2587,7 @@ class OspGrillage:
                     # Print connected transverse elements
                     trans_elements = [ele for ele in self.Mesh_obj.trans_ele if node in [ele[1], ele[2]]]
                     print(f"  Connected transverse elements: {trans_elements}")
-    
+
         # Store pin connection data for use during model creation
         self.pin_connections = {
             'nodes_list': nodes_list,
@@ -2584,10 +2596,10 @@ class OspGrillage:
             'material_commands': [],
             'element_commands': []
         }
-    
+
         if self.diagnostics:
             print(f"\nTotal intersection nodes to be pinned: {len(nodes_list)}")
-    
+
     def _create_pin_connections(self):
         """
         Internal method to create the pin connections during model creation.
@@ -2598,7 +2610,7 @@ class OspGrillage:
         """
         if not hasattr(self, 'pin_connections'):
             return
-    
+
         pin_data = self.pin_connections
         
         print("\n=== Creating Materials for Pin Connections ===")
@@ -2650,7 +2662,7 @@ class OspGrillage:
             }
             pin_data['new_nodes'].append(new_node_tag)
             print(f"  Created coincident node {new_node_tag} at same location")
-    
+
             # Create node command
             node_cmd = f"ops.node({new_node_tag}, {node_coord[0]}, {node_coord[1]}, {node_coord[2]})\n"
             if self.pyfile:
@@ -2659,11 +2671,11 @@ class OspGrillage:
             else:
                 eval(node_cmd)
                 self.model_command_list.append(node_cmd)
-    
+
             # Create zero-length element with all 6 DOFs
             ele_cmd = (f"ops.element('zeroLength', {ele_tag_start}, {node_tag}, {new_node_tag}, "
-                      f"'-mat', 1, 2, 3, 4, 5, 6, "
-                      f"'-dir', 1, 2, 3, 4, 5, 6)\n")
+                    f"'-mat', 1, 2, 3, 4, 5, 6, "
+                    f"'-dir', 1, 2, 3, 4, 5, 6)\n")
             print(f"  Created zero-length element {ele_tag_start} connecting nodes {node_tag} and {new_node_tag}")
             
             if self.pyfile:
@@ -2675,7 +2687,7 @@ class OspGrillage:
             
             pin_data['pin_elements'].append(ele_tag_start)
             ele_tag_start += 1
-    
+
             # Update element connectivity
             print("\n  Updating element connectivity:")
             print("  - Longitudinal beams remain connected to original node", node_tag)
@@ -2703,11 +2715,11 @@ class OspGrillage:
             print(f"    New node {new_node_tag}:")
             print(f"      - Connected to transverse elements: {trans_elements}")
             print(f"    Connected by zero-length element: {ele_tag_start-1}")
-    
+
         print("\n=== Pin Connection Creation Complete ===")
         print(f"Total nodes processed: {len(pin_data['nodes_list'])}")
         print(f"Total new nodes created: {len(pin_data['new_nodes'])}")
-        print(f"Total zero-length elements created: {len(pin_data['pin_elements'])}")    
+        print(f"Total zero-length elements created: {len(pin_data['pin_elements'])}")
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Analysis:
