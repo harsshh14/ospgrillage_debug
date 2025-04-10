@@ -1605,79 +1605,102 @@ class OspGrillage:
                 point_list.append(coord_point)
                 print(f"  Node {node_tag}: x={coord[0]}, y={coord[1]}, z={coord[2]}")
 
+            # Convert input point to proper format if needed
+            if isinstance(point, (list, tuple)):
+                check_point = point
+            elif hasattr(point, 'x'):  # Point object
+                check_point = [point.x, point.y, point.z]
+            else:
+                try:
+                    # Try to convert string or other format to list
+                    coords = str(point).strip('()[]').split(',')
+                    check_point = [float(x.strip()) for x in coords]
+                except:
+                    print(f"Warning: Could not parse point: {point}")
+                    continue
+
+            # Ensure point has 3 coordinates
+            if len(check_point) < 3:
+                check_point = [check_point[0], 0, check_point[1]]
+
             # check if point lies in grid
-            if is_point_in_polygon(point_list, point):
-                print(f"\nPoint found in Grid {grid_tag}")
-                grid_found = True
-                # get nodes of grid
-                node_1 = grid_nodes[0]
-                node_2 = grid_nodes[1]
-                node_3 = grid_nodes[2]
-                node_4 = grid_nodes[3]
+            try:
+                if is_point_in_polygon(point_list, check_point):
+                    print(f"\nPoint found in Grid {grid_tag}")
+                    grid_found = True
+                    # get nodes of grid
+                    node_1 = grid_nodes[0]
+                    node_2 = grid_nodes[1]
+                    node_3 = grid_nodes[2]
+                    node_4 = grid_nodes[3]
 
-                # get coordinates of nodes
-                coord_1 = self.Mesh_obj.node_spec[node_1]["coordinate"]
-                coord_2 = self.Mesh_obj.node_spec[node_2]["coordinate"]
-                coord_3 = self.Mesh_obj.node_spec[node_3]["coordinate"]
-                coord_4 = self.Mesh_obj.node_spec[node_4]["coordinate"]
+                    # get coordinates of nodes
+                    coord_1 = self.Mesh_obj.node_spec[node_1]["coordinate"]
+                    coord_2 = self.Mesh_obj.node_spec[node_2]["coordinate"]
+                    coord_3 = self.Mesh_obj.node_spec[node_3]["coordinate"]
+                    coord_4 = self.Mesh_obj.node_spec[node_4]["coordinate"]
 
-                print("\nGrid Corner Nodes:")
-                print(f"Node {node_1}: x={coord_1[0]}, y={coord_1[1]}, z={coord_1[2]}")
-                print(f"Node {node_2}: x={coord_2[0]}, y={coord_2[1]}, z={coord_2[2]}")
-                print(f"Node {node_3}: x={coord_3[0]}, y={coord_3[1]}, z={coord_3[2]}")
-                print(f"Node {node_4}: x={coord_4[0]}, y={coord_4[1]}, z={coord_4[2]}")
+                    print("\nGrid Corner Nodes:")
+                    print(f"Node {node_1}: x={coord_1[0]}, y={coord_1[1]}, z={coord_1[2]}")
+                    print(f"Node {node_2}: x={coord_2[0]}, y={coord_2[1]}, z={coord_2[2]}")
+                    print(f"Node {node_3}: x={coord_3[0]}, y={coord_3[1]}, z={coord_3[2]}")
+                    print(f"Node {node_4}: x={coord_4[0]}, y={coord_4[1]}, z={coord_4[2]}")
 
-                # get shape function values
-                N1, N2, N3, N4 = self._get_shape_function_values(
-                    point=point,
-                    coord_1=coord_1,
-                    coord_2=coord_2,
-                    coord_3=coord_3,
-                    coord_4=coord_4,
-                    shape_func=shape_func,
-                )
-
-                print("\nShape Function Values:")
-                print(f"N1 (Node {node_1}): {N1}")
-                print(f"N2 (Node {node_2}): {N2}")
-                print(f"N3 (Node {node_3}): {N3}")
-                print(f"N4 (Node {node_4}): {N4}")
-
-                # calculate nodal forces
-                P1 = mag * N1
-                P2 = mag * N2
-                P3 = mag * N3
-                P4 = mag * N4
-
-                print("\nDistributed Nodal Forces:")
-                print(f"Node {node_1}: {P1}")
-                print(f"Node {node_2}: {P2}")
-                print(f"Node {node_3}: {P3}")
-                print(f"Node {node_4}: {P4}")
-                print(f"Sum of distributed forces: {(P1 + P2 + P3 + P4)} (should equal total load: {mag})")
-
-                # create load string
-                if P1 != 0:
-                    load_str.append(
-                        "ops.load({}, *[0,{},0,0,0,0])\n".format(node_1, P1)
-                    )
-                if P2 != 0:
-                    load_str.append(
-                        "ops.load({}, *[0,{},0,0,0,0])\n".format(node_2, P2)
-                    )
-                if P3 != 0:
-                    load_str.append(
-                        "ops.load({}, *[0,{},0,0,0,0])\n".format(node_3, P3)
-                    )
-                if P4 != 0:
-                    load_str.append(
-                        "ops.load({}, *[0,{},0,0,0,0])\n".format(node_4, P4)
+                    # get shape function values
+                    N1, N2, N3, N4 = self._get_shape_function_values(
+                        point=point,
+                        coord_1=coord_1,
+                        coord_2=coord_2,
+                        coord_3=coord_3,
+                        coord_4=coord_4,
+                        shape_func=shape_func,
                     )
 
-                print("\nGenerated OpenSees Commands:")
-                for cmd in load_str:
-                    print(cmd.strip())
-                break
+                    print("\nShape Function Values:")
+                    print(f"N1 (Node {node_1}): {N1}")
+                    print(f"N2 (Node {node_2}): {N2}")
+                    print(f"N3 (Node {node_3}): {N3}")
+                    print(f"N4 (Node {node_4}): {N4}")
+
+                    # calculate nodal forces
+                    P1 = mag * N1
+                    P2 = mag * N2
+                    P3 = mag * N3
+                    P4 = mag * N4
+
+                    print("\nDistributed Nodal Forces:")
+                    print(f"Node {node_1}: {P1}")
+                    print(f"Node {node_2}: {P2}")
+                    print(f"Node {node_3}: {P3}")
+                    print(f"Node {node_4}: {P4}")
+                    print(f"Sum of distributed forces: {(P1 + P2 + P3 + P4)} (should equal total load: {mag})")
+
+                    # create load string
+                    if P1 != 0:
+                        load_str.append(
+                            "ops.load({}, *[0,{},0,0,0,0])\n".format(node_1, P1)
+                        )
+                    if P2 != 0:
+                        load_str.append(
+                            "ops.load({}, *[0,{},0,0,0,0])\n".format(node_2, P2)
+                        )
+                    if P3 != 0:
+                        load_str.append(
+                            "ops.load({}, *[0,{},0,0,0,0])\n".format(node_3, P3)
+                        )
+                    if P4 != 0:
+                        load_str.append(
+                            "ops.load({}, *[0,{},0,0,0,0])\n".format(node_4, P4)
+                        )
+
+                    print("\nGenerated OpenSees Commands:")
+                    for cmd in load_str:
+                        print(cmd.strip())
+                    break
+
+            except Exception as e:
+                print(f"Warning: Error processing point load: {e}")
+                print(f"Point coordinates: x={point[0]}, y={point[1]}, z={point[2]}")
 
         if not grid_found:
             print("\nWARNING: Point not found in any grid!")
@@ -3669,3 +3692,74 @@ class OspGrillageShell(OspGrillage):
             else:  # run instance
                 eval(fix_str)
                 self.model_command_list.append(fix_str)
+
+
+class Point:
+    """Simple point class to store x, y, z coordinates"""
+    def __init__(self, x, y, z):
+        self.x = float(x)
+        self.y = float(y)
+        self.z = float(z)
+
+    def __str__(self):
+        return f"Point({self.x}, {self.y}, {self.z})"
+
+    def to_list(self):
+        return [self.x, self.y, self.z]
+
+def is_point_in_polygon(polygon_points, point):
+    """
+    Check if a point lies within a polygon defined by a list of points.
+    
+    Args:
+        polygon_points (list): List of Point objects defining the polygon vertices
+        point (list or Point): Point to check, can be [x, y, z] or Point object
+    
+    Returns:
+        bool: True if point is inside polygon, False otherwise
+    """
+    # Convert point to list format if it's a Point object
+    if isinstance(point, Point):
+        point = [point.x, point.y, point.z]
+    elif not isinstance(point, (list, tuple)) or len(point) < 3:
+        point = [point[0], 0, point[1]]  # Convert 2D point to 3D if needed
+
+    # Function to determine which side of a line a point is on
+    def get_side(p1, p2, p):
+        return (p[0] - p1.x) * (p2.z - p1.z) - (p2.x - p1.x) * (p[2] - p1.z)
+
+    n = len(polygon_points)
+    if n < 3:  # Need at least 3 points to form a polygon
+        return False
+
+    # Check if point is on any edge
+    for i in range(n):
+        p1 = polygon_points[i]
+        p2 = polygon_points[(i + 1) % n]
+        
+        # Check if point is on vertical line
+        if abs(p2.x - p1.x) < 1e-7:
+            if abs(point[0] - p1.x) < 1e-7:
+                if min(p1.z, p2.z) <= point[2] <= max(p1.z, p2.z):
+                    return True
+            continue
+
+        # Check if point is on horizontal line
+        if abs(p2.z - p1.z) < 1e-7:
+            if abs(point[2] - p1.z) < 1e-7:
+                if min(p1.x, p2.x) <= point[0] <= max(p1.x, p2.x):
+                    return True
+            continue
+
+    # Ray casting algorithm
+    inside = False
+    j = n - 1
+    for i in range(n):
+        if ((polygon_points[i].z > point[2]) != (polygon_points[j].z > point[2]) and
+            point[0] < (polygon_points[j].x - polygon_points[i].x) * 
+            (point[2] - polygon_points[i].z) / 
+            (polygon_points[j].z - polygon_points[i].z) + polygon_points[i].x):
+            inside = not inside
+        j = i
+
+    return inside
