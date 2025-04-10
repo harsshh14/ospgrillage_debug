@@ -3424,8 +3424,122 @@ class OspGrillageBeam(OspGrillage):
             model="3D",
             **kwargs,
         )
-        #
 
+    def _get_shape_function_values(self, point, coord_1, coord_2, coord_3, coord_4, shape_func="linear"):
+        """
+        Calculate shape function values for load distribution to nodes.
+        
+        Args:
+            point (list): Load application point coordinates [x, y, z]
+            coord_1 (list): First node coordinates [x, y, z]
+            coord_2 (list): Second node coordinates [x, y, z]
+            coord_3 (list): Third node coordinates [x, y, z]
+            coord_4 (list): Fourth node coordinates [x, y, z]
+            shape_func (str): Shape function type ("linear" or "bilinear")
+        
+        Returns:
+            tuple: Shape function values (N1, N2, N3, N4)
+        """
+        try:
+            # Convert point coordinates to floats if they're strings
+            x, y, z = map(float, [point[0], point[1], point[2]])
+            
+            # Convert node coordinates to floats
+            x1, y1, z1 = map(float, [coord_1[0], coord_1[1], coord_1[2]])
+            x2, y2, z2 = map(float, [coord_2[0], coord_2[1], coord_2[2]])
+            x3, y3, z3 = map(float, [coord_3[0], coord_3[1], coord_3[2]])
+            x4, y4, z4 = map(float, [coord_4[0], coord_4[1], coord_4[2]])
+
+            if shape_func.lower() == "bilinear":
+                # Calculate local coordinates xi and eta
+                # Map the quadrilateral to a [-1,1]x[-1,1] square
+                a = x2 - x1
+                b = x3 - x1
+                c = x4 - x1
+                d = z2 - z1
+                e = z3 - z1
+                f = z4 - z1
+                
+                # Solve for xi and eta
+                det = a*e - b*d
+                if abs(det) < 1e-10:
+                    # If determinant is too small, fall back to linear interpolation
+                    return self._get_linear_shape_functions(point, coord_1, coord_2, coord_3, coord_4)
+                
+                xi = ((e*(x - x1) - b*(z - z1))/det)
+                eta = ((-d*(x - x1) + a*(z - z1))/det)
+                
+                # Calculate bilinear shape functions
+                N1 = 0.25 * (1 - xi) * (1 - eta)
+                N2 = 0.25 * (1 + xi) * (1 - eta)
+                N3 = 0.25 * (1 + xi) * (1 + eta)
+                N4 = 0.25 * (1 - xi) * (1 + eta)
+                
+            else:  # Linear interpolation
+                return self._get_linear_shape_functions(point, coord_1, coord_2, coord_3, coord_4)
+            
+            # Normalize shape functions to ensure they sum to 1
+            total = N1 + N2 + N3 + N4
+            if abs(total - 1.0) > 1e-10:  # If sum is not close to 1
+                N1 /= total
+                N2 /= total
+                N3 /= total
+                N4 /= total
+                
+            return N1, N2, N3, N4
+            
+        except Exception as e:
+            print(f"Warning: Error calculating shape functions: {e}")
+            # Return equal distribution as fallback
+            return 0.25, 0.25, 0.25, 0.25
+
+    def _get_linear_shape_functions(self, point, coord_1, coord_2, coord_3, coord_4):
+        """
+        Calculate linear shape functions based on distances to nodes.
+        
+        Args:
+            point (list): Load application point coordinates [x, y, z]
+            coord_1 (list): First node coordinates [x, y, z]
+            coord_2 (list): Second node coordinates [x, y, z]
+            coord_3 (list): Third node coordinates [x, y, z]
+            coord_4 (list): Fourth node coordinates [x, y, z]
+        
+        Returns:
+            tuple: Shape function values (N1, N2, N3, N4)
+        """
+        try:
+            # Calculate distances from point to each node
+            d1 = ((point[0] - coord_1[0])**2 + (point[2] - coord_1[2])**2)**0.5
+            d2 = ((point[0] - coord_2[0])**2 + (point[2] - coord_2[2])**2)**0.5
+            d3 = ((point[0] - coord_3[0])**2 + (point[2] - coord_3[2])**2)**0.5
+            d4 = ((point[0] - coord_4[0])**2 + (point[2] - coord_4[2])**2)**0.5
+            
+            # Add small value to avoid division by zero
+            eps = 1e-10
+            d1 += eps
+            d2 += eps
+            d3 += eps
+            d4 += eps
+            
+            # Calculate weights as inverse of distances
+            w1 = 1.0/d1
+            w2 = 1.0/d2
+            w3 = 1.0/d3
+            w4 = 1.0/d4
+            
+            # Normalize weights to get shape functions
+            total = w1 + w2 + w3 + w4
+            N1 = w1/total
+            N2 = w2/total
+            N3 = w3/total
+            N4 = w4/total
+            
+            return N1, N2, N3, N4
+            
+        except Exception as e:
+            print(f"Warning: Error calculating linear shape functions: {e}")
+            # Return equal distribution as fallback
+            return 0.25, 0.25, 0.25, 0.25
 
 class OspGrillageShell(OspGrillage):
     """
