@@ -96,37 +96,35 @@ def create_compound_load(**kwargs):
     """
     return CompoundLoad(**kwargs)
 
-
 def create_load(**kwargs):
-    """
-    User interface function to create load types.
-
-    :keyword:
-
-    * type(`str`): type of load. Choose either ["point","line","patch","nodal"]
-    * point# (`LoadPoint` namedTuple): LoadPoint for load type in global coordinate. Note different load type requires a
-    different minimum LoadPoint.
-    * local_load_point_# (`LoadPoint` namedTuple): LoadPoint for load type in local coordinate. Note different load type
-    requires a different minimum LoadPoint.
-
-    :return: PointLoad, LineLoading, PatchLoading, or NodalForces
-    """
+    print("\n=== Starting Load Creation ===")
+    print(f"Load Type: {kwargs.get('loadtype', 'Not specified')}")
+    print(f"Load Name: {kwargs.get('name', 'Unnamed')}")
+    
     type = kwargs.get("loadtype", None)
 
     vertice_list = []
     for i in range(4):
         vertice_string = f"point{i + 1}"
-        vertice_list.append(kwargs.get(vertice_string, None))
+        vertex = kwargs.get(vertice_string, None)
+        vertice_list.append(vertex)
+        if vertex:
+            print(f"{vertice_string}: (x={vertex.x}, y={vertex.y}, z={vertex.z}, p={vertex.p})")
 
     vertice_count = sum([1 for vertex in vertice_list if vertex])
+    print(f"Number of vertices provided: {vertice_count}")
 
     if vertice_count == 1:
+        print("Creating Point Load")
         return PointLoad(**kwargs)
     elif vertice_count == 2:
+        print("Creating Line Load")
         return LineLoading(**kwargs)
     elif vertice_count >= 4:
+        print("Creating Patch Load")
         return PatchLoading(**kwargs)
     elif type == "nodal":
+        print("Creating Nodal Load")
         fx = kwargs.get("Fx", 0)
         fy = kwargs.get("Fy", 0)
         fz = kwargs.get("Fz", 0)
@@ -135,20 +133,17 @@ def create_load(**kwargs):
         mz = kwargs.get("Mz", 0)
         tag = kwargs.get("node_tag", None)
         name = kwargs.get("name", None)
-        if any(
-            [fx is None, fy is None, fz is None, mx is None, my is None, mz is None]
-        ):
-            raise ValueError(
-                "Missing arguments for nodal force definition : Hint check if all required keywords are given"
-            )
+        print(f"Nodal forces - Fx:{fx}, Fy:{fy}, Fz:{fz}, Mx:{mx}, My:{my}, Mz:{mz}")
+        print(f"Node tag: {tag}")
+        
+        if any([fx is None, fy is None, fz is None, mx is None, my is None, mz is None]):
+            raise ValueError("Missing arguments for nodal force definition")
         force = NodeForces(fx, fy, fz, mx, my, mz)
         return NodalLoad(name=name, node_tag=tag, node_force=force)
     else:
         raise TypeError(
-            'load_type must either be "nodal" or number of load points is incorrect. hint:'
-            " number of load points must either be 1 (point), 2 (line) or 4 (patch)"
+            'load_type must either be "nodal" or number of load points is incorrect'
         )
-
 
 def create_moving_load(**kwargs):
     """
@@ -465,27 +460,27 @@ class PointLoad(Loads):
         """
         super().__init__(**kwargs)
 
-
 class LineLoading(Loads):
-    """
-    Class for line loading.
-    """
-
     def __init__(self, **kwargs):
-        """
-        Init the LineLoading class.
-        :param name:
-        :param kwargs:
-        """
+        print("\n=== Creating Line Load ===")
+        print(f"Load Name: {kwargs.get('name', 'Unnamed')}")
+        
         super().__init__(**kwargs)
+        
+        print("\nInput Load Points:")
+        print(f"Point 1: (x={self.load_point_1.x}, y={self.load_point_1.y}, z={self.load_point_1.z}, p={self.load_point_1.p})")
+        print(f"Point 2: (x={self.load_point_2.x}, y={self.load_point_2.y}, z={self.load_point_2.z}, p={self.load_point_2.p})")
 
         self.long_beam_ele_load_flag = kwargs.get("long_beam_element_load", False)
         self.trans_beam_ele_load_flag = kwargs.get("trans_beam_element_load", False)
 
-        # if three points are defined, set line as curved circular line with point 2 (x2,y2,z2) in the centre of
-        # curve
+        print("\nBeam Element Load Flags:")
+        print(f"Longitudinal Beam Load: {self.long_beam_ele_load_flag}")
+        print(f"Transverse Beam Load: {self.trans_beam_ele_load_flag}")
+
+        # if three points are defined, set line as curved circular line
         if self.load_point_3 is not None:  # curve
-            # findCircle assumes model plane is y = 0, ignores y input, y in this case is a 2D view of x z plane
+            print("\nCreating Curved Line Load")
             self.d = find_circle(
                 x1=self.load_point_1.x,
                 y1=self.load_point_1.z,
@@ -494,115 +489,102 @@ class LineLoading(Loads):
                 x3=self.load_point_3.x,
                 y3=self.load_point_3.z,
             )
-            # return a function variable
             self.line_end_point = self.load_point_3
+            print("Curve parameters calculated")
         else:  # straight line with 2 points
+            print("\nCreating Straight Line Load")
             self.m, self.phi = get_slope(
                 [self.load_point_1.x, self.load_point_1.y, self.load_point_1.z],
                 [self.load_point_2.x, self.load_point_2.y, self.load_point_2.z],
             )
             self.c = get_y_intcp(m=self.m, x=self.load_point_1.x, y=self.load_point_1.z)
-            self.angle = (
-                np.arctan(self.m) if self.m is not None else np.pi / 2
-            )  # in radian
+            self.angle = np.arctan(self.m) if self.m is not None else np.pi / 2
             self.line_end_point = self.load_point_2
-            # namedTuple Line
             self.line_equation = Line(self.m, self.c, self.phi)
-        # else:
-        #     raise ValueError("Invalid load points for line load {}".format(self.name))
+            
+            print("Line Parameters:")
+            print(f"Slope (m): {self.m}")
+            print(f"Y-intercept (c): {self.c}")
+            print(f"Angle (phi): {self.phi} radians")
+            print(f"Angle from horizontal: {self.angle} radians")
+
+        print("\n=== Line Load Creation Complete ===")
 
     def interpolate_udl_magnitude(self, point_coordinate):
-        #   """
-        #   Function to interpolate magnitude of load point between two load points in a line segment.
-        #
-        #   Example illustration: Function returns p @ [x y z]
-        #
-        #   p(loadpoint1)_____p(x=,y,z)_______ p(loadpoint2)
-        #   ||||||||||||||||||||||||||||||||||||||||||||||      Line loading
-        #   ||||||||||||||||||||||||||||||||||||||||||||||
-        # __________________________________________________________
-        #
-        #   :param point_coordinate: coordinate list [x,y,z]
-        #   :type point_coordinate: list
-        #   :return: point force (udl) magnitude at coordinate
-        #   """
-        # input: point_coordinate list of [x,y,z]
+        print(f"\nInterpolating load at coordinate: {point_coordinate}")
         pp = None
-        # check if line is straight or curve
         if self.load_point_3 is None:  # straight line
-            # x[0],z[0] and p[0] shall be reference point for interpolate
             xp = point_coordinate[0]
-            yp = point_coordinate[0]  # not used but generated here
+            yp = point_coordinate[0]
             zp = point_coordinate[0]
 
-            # use parametric equation of line in 3D
             v = [
                 self.load_point_2.x - self.load_point_1.x,
                 self.load_point_2.p - self.load_point_1.p,
                 self.load_point_2.z - self.load_point_1.z,
             ]
+            print(f"Vector components [dx, dp, dz]: {v}")
+            
             if v[0] == 0 and self.load_point_2.x == self.load_point_1.x:
                 pp = (zp - self.load_point_1.z) / v[2] * v[1] + self.load_point_1.p
+                print(f"Vertical line - interpolating based on z-coordinate")
             else:
                 pp = (xp - self.load_point_1.x) / v[0] * v[1] + self.load_point_1.p
-
-        elif self.load_point_3 is not None:  # curve
-            # TODO for curved line load
-            pass
+                print(f"Interpolating based on x-coordinate")
+            
+            print(f"Interpolated load magnitude: {pp}")
         return pp
 
     def get_point_given_distance(self, xbar, point_coordinate):
-        # """
-        # Function to return
-        # :param xbar: distance
-        # :type xbar: float
-        # :param point_coordinate: coordinates list [x,y,z]
-        # :type point_coordinate: list
-        # :return new_point: coordinate list [x,y,z] shifted by distance
-        # :type new_point: list
-        # """
-        # function to return centroid of line load given reference point coordinate (point2) and xbar calculated based
-        # on
+        print(f"\nCalculating point at distance {xbar} from coordinate {point_coordinate}")
         z_dis = xbar * np.sin(self.angle)
         x_dis = xbar * np.cos(self.angle)
-        # y dis = 0 due to model plane
         new_point = [
             point_coordinate[0] - x_dis,
             point_coordinate[1],
             point_coordinate[2] - z_dis,
         ]
+        print(f"Calculated displacements - x: {x_dis}, z: {z_dis}")
+        print(f"New point coordinates: {new_point}")
         return new_point
 
     def get_line_segment_given_x(self, x):
-        # """
-        # Function to return straight line equation for line segment (in OpsGrillage case, segment bounded by grid) given x point
-        # :param x: value of x input for line equation
-        # :type x: float
-        # :return: solution of line equation (i.e. y = mx + c)
-        # """
-        if self.line_equation.m is None:  # if vertical line
+        print(f"\nFinding z-coordinate for x = {x}")
+        if self.line_equation.m is None:
+            print("Vertical line - no unique z-coordinate")
             pass
         else:
             if (
                 self.load_point_1.x <= x <= self.line_end_point.x
                 or self.load_point_1.x >= x >= self.line_end_point.x
             ):
-                return line_func(self.line_equation.m, self.line_equation.c, x)
+                z = line_func(self.line_equation.m, self.line_equation.c, x)
+                print(f"Found z-coordinate: {z}")
+                return z
+            else:
+                print(f"x-coordinate {x} is outside line segment bounds")
 
     def get_line_segment_given_z(self, z):
-        if self.line_equation.m is None:  # if vertical line
+        print(f"\nFinding x-coordinate for z = {z}")
+        if self.line_equation.m is None:
             if (
                 self.load_point_1.z <= z <= self.line_end_point.z
                 or self.load_point_1.z >= z >= self.line_end_point.z
             ):
+                print(f"Vertical line - x-coordinate is {self.load_point_1.x}")
                 return self.load_point_1.x
+            else:
+                print(f"z-coordinate {z} is outside line segment bounds")
         else:
             if (
                 self.load_point_1.z <= z <= self.line_end_point.z
                 or self.load_point_1.z >= z >= self.line_end_point.z
             ):
-                return inv_line_func(self.line_equation.m, self.line_equation.c, z)
-
+                x = inv_line_func(self.line_equation.m, self.line_equation.c, z)
+                print(f"Found x-coordinate: {x}")
+                return x
+            else:
+                print(f"z-coordinate {z} is outside line segment bounds")
 
 class PatchLoading(Loads):
     """
