@@ -97,26 +97,32 @@ def create_compound_load(**kwargs):
     return CompoundLoad(**kwargs)
 
 def create_load(**kwargs):
-    print("\n=== Starting Load Creation ===")
-    print(f"Load Type: {kwargs.get('loadtype', 'Not specified')}")
+    print("\n=== Starting Load Creation Process ===")
+    load_type = kwargs.get("loadtype", None)
+    print(f"Requested Load Type: {load_type}")
     print(f"Load Name: {kwargs.get('name', 'Unnamed')}")
-    
-    type = kwargs.get("loadtype", None)
 
     vertice_list = []
+    print("\nChecking Load Points:")
     for i in range(4):
         vertice_string = f"point{i + 1}"
         vertex = kwargs.get(vertice_string, None)
         vertice_list.append(vertex)
         if vertex:
-            print(f"{vertice_string}: (x={vertex.x}, y={vertex.y}, z={vertex.z}, p={vertex.p})")
+            print(f"{vertice_string}:")
+            print(f"  Location: (x={vertex.x:.3f}, y={vertex.y:.3f}, z={vertex.z:.3f})")
+            print(f"  Magnitude: {vertex.p:.3f}")
 
     vertice_count = sum([1 for vertex in vertice_list if vertex])
-    print(f"Number of vertices provided: {vertice_count}")
+    print(f"\nNumber of vertices provided: {vertice_count}")
 
     if vertice_count == 1:
-        print("Creating Point Load")
-        return PointLoad(**kwargs)
+        print("\nInitiating Point Load Creation:")
+        print("- Single vertex detected")
+        print("- Creating PointLoad object")
+        point_load = PointLoad(**kwargs)
+        print("Point Load created successfully")
+        return point_load
     elif vertice_count == 2:
         print("Creating Line Load")
         return LineLoading(**kwargs)
@@ -190,83 +196,53 @@ Line = namedtuple("line", ["m", "c", "phi"])
 # Loading classes
 # ---------------------------------------------------------------------------------------------------------------
 class Loads:
-    """
-    Base class for Point, Line , and Patch loads
-    """
-
-    load_point_1: LoadPoint
-    load_point_2: LoadPoint
-    load_point_3: LoadPoint
-    load_point_4: LoadPoint
-    load_point_5: LoadPoint
-    load_point_6: LoadPoint
-    load_point_7: LoadPoint
-    load_point_8: LoadPoint
-
     def __init__(self, **kwargs):
-        """
-
-        :param name: Name of load
-        :param Fx: Axis force in x axis
-        :param Fy: Axis force in y axis
-        :param Fz: Axis force in z axis
-        :param Mx: Moment about x axis
-        :param My: Moment about y axis
-        :param Mz: Moment about z axis
-        :param kwargs: see below
-
-        :keyword:
-
-        * **point1**, **point2**, ..., **point8** : (LoadPoint namedTuple) coordinate points with force magnitude describing the load type
-        * **localpoint1**, **localpoint2**, ..., **localpoint8**: (LoadPoint namedTuple) local coordinate points with force magnitude describing the load type
-
-
-        """
-        #
+        print("\n=== Initializing Base Load Class ===")
         self.name = kwargs.get("name", None)
+        print(f"Load Name: {self.name}")
 
-        # Initialise dict for key load points of line UDL and patch load definitions
+        print("\nProcessing Load Points:")
         self.load_point_data = dict()
-        # parse namedtuple of global coordinates
-        self.load_point_1 = kwargs.get("point1", None)
-        self.load_point_2 = kwargs.get("point2", None)
-        self.load_point_3 = kwargs.get("point3", None)
-        self.load_point_4 = kwargs.get("point4", None)
-        self.load_point_5 = kwargs.get("point5", None)
-        self.load_point_6 = kwargs.get("point6", None)
-        self.load_point_7 = kwargs.get("point7", None)
-        self.load_point_8 = kwargs.get("point8", None)
+        
+        # Process each load point
+        for i in range(1, 9):
+            point = kwargs.get(f"point{i}", None)
+            setattr(self, f"load_point_{i}", point)
+            if point:
+                print(f"Load Point {i}:")
+                print(f"  Location: (x={point.x:.3f}, y={point.y:.3f}, z={point.z:.3f})")
+                print(f"  Magnitude: {point.p:.3f}")
 
-        # shape function
         self.shape_function = kwargs.get("shape_function", "linear")
-        # check if user skipped point 1 and defined point1 as point 2 instead
+        print(f"\nShape Function: {self.shape_function}")
+
+        # Check point definitions
         if all([self.load_point_1 is None, self.load_point_2 is not None]):
+            print("Error: Load point 1 is not defined but point 2 exists")
             raise Exception("Load point 1 is not defined")
 
-        # list of load points tuple
+        # Create point list
         self.point_list = [
-            self.load_point_1,
-            self.load_point_2,
-            self.load_point_3,
-            self.load_point_4,
-            self.load_point_5,
-            self.load_point_6,
-            self.load_point_7,
-            self.load_point_8,
+            self.load_point_1, self.load_point_2, self.load_point_3, self.load_point_4,
+            self.load_point_5, self.load_point_6, self.load_point_7, self.load_point_8
         ]
-        # self.local_point_list = [self.local_load_point_1, self.local_load_point_2, self.local_load_point_3,
-        #                          self.local_load_point_4, self.local_load_point_5, self.local_load_point_6,
-        #                          self.local_load_point_7, self.local_load_point_8]
-        # var for compound load group (handled by LoadCase class when creating compound groups)
-        self.compound_dist_x = 0  # local coordinate system
-        self.compound_dist_z = 0  # local coordinate system
-        self.ref_point = None  # local coordinate system
-        self.compound_group = None  # group number access by LoadCase class to move load group if any path is defined
-        # spec dict
+        
+        # Initialize compound load parameters
+        self.compound_dist_x = 0
+        self.compound_dist_z = 0
+        self.ref_point = None
+        self.compound_group = None
+        
+        # Create specification dictionary
         self.spec = dict(
-            name=self.name, global_points=self.point_list, ref_point=self.ref_point
-        )  # dict {node number: {Fx:val, Fy:val, Fz:val, Mx:val, My:val, Mz:val}}
-        self.load_counter = 0  # counter for compound load
+            name=self.name,
+            global_points=self.point_list,
+            ref_point=self.ref_point
+        )
+        self.load_counter = 0
+
+        print("\nLoad Initialization Complete")
+        print("=== Base Load Class Initialization Complete ===\n")
 
     # function called by Moving load module to move the load group
     def move_load(self, ref_point: Point):
@@ -448,17 +424,45 @@ class NodalLoad(Loads):
 
 
 class PointLoad(Loads):
-    """
-    Class for Point loads.
-    """
-
     def __init__(self, **kwargs):
-        """
-
-        :param name:
-        :param kwargs:
-        """
+        print("\n=== Creating Point Load ===")
+        print(f"Load Name: {kwargs.get('name', 'Unnamed')}")
+        
         super().__init__(**kwargs)
+        
+        # Print point load details
+        print("\nPoint Load Details:")
+        if self.load_point_1:
+            print(f"Location: (x={self.load_point_1.x:.3f}, y={self.load_point_1.y:.3f}, z={self.load_point_1.z:.3f})")
+            print(f"Load Magnitude (p): {self.load_point_1.p:.3f}")
+        else:
+            print("Warning: No load point defined")
+            
+        print("\nLoad Specification:")
+        print(f"Load Name: {self.name}")
+        print("Global Points:", [p for p in self.point_list if p is not None])
+        print(f"Reference Point: {self.ref_point}")
+        print("=== Point Load Creation Complete ===\n")
+
+    def move_load(self, ref_point: Point):
+        print(f"\n=== Moving Point Load: {self.name} ===")
+        print(f"Original Position: (x={self.load_point_1.x:.3f}, y={self.load_point_1.y:.3f}, z={self.load_point_1.z:.3f})")
+        print(f"Moving by offset: (x={ref_point.x:.3f}, y={ref_point.y:.3f}, z={ref_point.z:.3f})")
+        
+        super().move_load(ref_point)
+        
+        print(f"New Position: (x={self.load_point_1.x:.3f}, y={self.load_point_1.y:.3f}, z={self.load_point_1.z:.3f})")
+        print("=== Point Load Movement Complete ===\n")
+
+    def apply_load_factor(self, factor=1):
+        print(f"\n=== Applying Load Factor to Point Load: {self.name} ===")
+        print(f"Original Load Magnitude: {self.load_point_1.p:.3f}")
+        print(f"Load Factor: {factor}")
+        
+        super().apply_load_factor(factor)
+        
+        print(f"New Load Magnitude: {self.load_point_1.p:.3f}")
+        print("=== Load Factor Application Complete ===\n")
 
 class LineLoading(Loads):
     def __init__(self, **kwargs):
