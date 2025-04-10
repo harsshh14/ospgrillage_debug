@@ -1628,17 +1628,17 @@ class OspGrillage:
             point_list.append(Point(p4[0], p4[1], p4[2]))
             sorted_list, sorted_node_tag = sort_vertices(point_list, grid_nodes)
             # mapping coordinates to natural coordinate, then finds eta (x) and zeta (z) of the point xp,zp
-            print(f"point[0] - {point[0]}")
-            print(f"point[2] - {point[2]}")
-            print(f"sorted_list[0].x - {sorted_list[0].x}")
-            print(f"sorted_list[0].z - {sorted_list[0].z}")
-            print(f"sorted_list[1].x - {sorted_list[1].x}")
-            print(f"sorted_list[1].z - {sorted_list[1].z}")
-            print(f"sorted_list[2].x - {sorted_list[2].x}")
-            print(f"sorted_list[2].z - {sorted_list[2].z}")
-            print(f"sorted_list[3].x - {sorted_list[3].x}")
-            print(f"sorted_list[3].z - {sorted_list[3].z}")
-            print("-----------------------------------------")
+            # print(f"point[0] - {point[0]}")
+            # print(f"point[2] - {point[2]}")
+            # print(f"sorted_list[0].x - {sorted_list[0].x}")
+            # print(f"sorted_list[0].z - {sorted_list[0].z}")
+            # print(f"sorted_list[1].x - {sorted_list[1].x}")
+            # print(f"sorted_list[1].z - {sorted_list[1].z}")
+            # print(f"sorted_list[2].x - {sorted_list[2].x}")
+            # print(f"sorted_list[2].z - {sorted_list[2].z}")
+            # print(f"sorted_list[3].x - {sorted_list[3].x}")
+            # print(f"sorted_list[3].z - {sorted_list[3].z}")
+            # print("-----------------------------------------")
             eta, zeta = solve_zeta_eta(
                 xp=point[0],
                 zp=point[2],
@@ -1651,7 +1651,8 @@ class OspGrillage:
                 x4=sorted_list[3].x,
                 z4=sorted_list[3].z,
             )
-
+            print(f"eta- {eta}")
+            print(f"zeta- {zeta}")
             # access shape function of line load
             if shape_func == "hermite":
                 Nv, Nmx, Nmz = ShapeFunction.hermite_shape_function_2d(eta, zeta)
@@ -1663,6 +1664,8 @@ class OspGrillage:
             # Nv, Nmx, Nmz = ShapeFunction.hermite_shape_function_2d(eta, zeta)
             # Fy
             node_load = [mag * n for n in Nv]
+            print(f"node_load -{node_load}")
+            print("-------------------------------------------")
 
         load_str = []
         if shape_func == "hermite":
