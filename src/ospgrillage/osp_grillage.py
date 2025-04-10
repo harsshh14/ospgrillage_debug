@@ -1665,7 +1665,6 @@ class OspGrillage:
             # Fy
             node_load = [mag * n for n in Nv]
             print(f"node_load -{node_load}")
-            print("-------------------------------------------")
 
         load_str = []
         if shape_func == "hermite":
@@ -1678,11 +1677,13 @@ class OspGrillage:
                 )
         else:
             for count, node in enumerate(sorted_node_tag):
+                print(f"{node} - {node_load[count]} ")
                 load_str.append(
                     "ops.load({pt}, *{val})\n".format(
                         pt=node, val=[0, node_load[count], 0, 0, 0, 0]
                     )
                 )
+            print("------------------------------------------")    
         return load_str
 
     # Setter for Line loads and above
