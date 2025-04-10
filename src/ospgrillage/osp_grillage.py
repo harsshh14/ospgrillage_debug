@@ -1588,8 +1588,8 @@ class OspGrillage:
     def _assign_load_to_four_node(self, point, mag, shape_func="linear"):
         """Assign point load to four nodes in quadrilateral element or grid"""
         print("\n=== Load Distribution to Nodes ===")
-        print(f"Load Point: x={point[0]:.3f}, y={point[1]:.3f}, z={point[2]:.3f}")
-        print(f"Total Load Magnitude: {mag:.3f}")
+        print(f"Load Point: x={point[0]}, y={point[1]}, z={point[2]}")
+        print(f"Total Load Magnitude: {mag}")
         print(f"Shape Function: {shape_func}")
 
         load_str = []
@@ -1603,7 +1603,7 @@ class OspGrillage:
                 coord = self.Mesh_obj.node_spec[node_tag]["coordinate"]
                 coord_point = Point(coord[0], coord[1], coord[2])
                 point_list.append(coord_point)
-                print(f"  Node {node_tag}: x={coord[0]:.3f}, y={coord[1]:.3f}, z={coord[2]:.3f}")
+                print(f"  Node {node_tag}: x={coord[0]}, y={coord[1]}, z={coord[2]}")
 
             # check if point lies in grid
             if is_point_in_polygon(point_list, point):
@@ -1622,10 +1622,10 @@ class OspGrillage:
                 coord_4 = self.Mesh_obj.node_spec[node_4]["coordinate"]
 
                 print("\nGrid Corner Nodes:")
-                print(f"Node {node_1}: x={coord_1[0]:.3f}, y={coord_1[1]:.3f}, z={coord_1[2]:.3f}")
-                print(f"Node {node_2}: x={coord_2[0]:.3f}, y={coord_2[1]:.3f}, z={coord_2[2]:.3f}")
-                print(f"Node {node_3}: x={coord_3[0]:.3f}, y={coord_3[1]:.3f}, z={coord_3[2]:.3f}")
-                print(f"Node {node_4}: x={coord_4[0]:.3f}, y={coord_4[1]:.3f}, z={coord_4[2]:.3f}")
+                print(f"Node {node_1}: x={coord_1[0]}, y={coord_1[1]}, z={coord_1[2]}")
+                print(f"Node {node_2}: x={coord_2[0]}, y={coord_2[1]}, z={coord_2[2]}")
+                print(f"Node {node_3}: x={coord_3[0]}, y={coord_3[1]}, z={coord_3[2]}")
+                print(f"Node {node_4}: x={coord_4[0]}, y={coord_4[1]}, z={coord_4[2]}")
 
                 # get shape function values
                 N1, N2, N3, N4 = self._get_shape_function_values(
@@ -1638,10 +1638,10 @@ class OspGrillage:
                 )
 
                 print("\nShape Function Values:")
-                print(f"N1 (Node {node_1}): {N1:.4f}")
-                print(f"N2 (Node {node_2}): {N2:.4f}")
-                print(f"N3 (Node {node_3}): {N3:.4f}")
-                print(f"N4 (Node {node_4}): {N4:.4f}")
+                print(f"N1 (Node {node_1}): {N1}")
+                print(f"N2 (Node {node_2}): {N2}")
+                print(f"N3 (Node {node_3}): {N3}")
+                print(f"N4 (Node {node_4}): {N4}")
 
                 # calculate nodal forces
                 P1 = mag * N1
@@ -1650,11 +1650,11 @@ class OspGrillage:
                 P4 = mag * N4
 
                 print("\nDistributed Nodal Forces:")
-                print(f"Node {node_1}: {P1:.3f}")
-                print(f"Node {node_2}: {P2:.3f}")
-                print(f"Node {node_3}: {P3:.3f}")
-                print(f"Node {node_4}: {P4:.3f}")
-                print(f"Sum of distributed forces: {(P1 + P2 + P3 + P4):.3f} (should equal total load: {mag:.3f})")
+                print(f"Node {node_1}: {P1}")
+                print(f"Node {node_2}: {P2}")
+                print(f"Node {node_3}: {P3}")
+                print(f"Node {node_4}: {P4}")
+                print(f"Sum of distributed forces: {(P1 + P2 + P3 + P4)} (should equal total load: {mag})")
 
                 # create load string
                 if P1 != 0:
@@ -1681,11 +1681,10 @@ class OspGrillage:
 
         if not grid_found:
             print("\nWARNING: Point not found in any grid!")
-            print(f"Point coordinates: x={point[0]:.3f}, y={point[1]:.3f}, z={point[2]:.3f}")
+            print(f"Point coordinates: x={point[0]}, y={point[1]}, z={point[2]}")
 
         print("=== Load Distribution Complete ===\n")
         return load_str
-
     # Setter for Line loads and above
     def _assign_line_to_four_node(self, line_load_obj, line_grid_intersect, line_ele_colinear):
         print("\n=== Processing Line Load Distribution ===")
@@ -1700,22 +1699,23 @@ class OspGrillage:
                 p1 = intersect[0]  # start point
                 p2 = intersect[1]  # end point
                 print(f"Intersection Segment:")
-                print(f"  Point 1: x={p1[0]:.3f}, y={p1[1]:.3f}, z={p1[2]:.3f}")
-                print(f"  Point 2: x={p2[0]:.3f}, y={p2[1]:.3f}, z={p2[2]:.3f}")
+                # Safe printing that works for both string and float values
+                print(f"  Point 1: x={p1[0]}, y={p1[1]}, z={p1[2]}")
+                print(f"  Point 2: x={p2[0]}, y={p2[1]}, z={p2[2]}")
 
                 # Calculate segment length
                 L = get_distance(p1, p2)
-                print(f"  Segment Length: {L:.3f}")
+                print(f"  Segment Length: {L}")
 
                 # Get load magnitudes
                 w1 = line_load_obj.interpolate_udl_magnitude([p1[0], 0, p1[1]])
                 w2 = line_load_obj.interpolate_udl_magnitude([p2[0], 0, p2[1]])
                 print(f"  Load Magnitudes:")
-                print(f"    w1 at p1: {w1:.3f}")
-                print(f"    w2 at p2: {w2:.3f}")
+                print(f"    w1 at p1: {w1}")
+                print(f"    w2 at p2: {w2}")
 
                 W = (w1 + w2) / 2
-                print(f"  Average Load Magnitude: {W:.3f}")
+                print(f"  Average Load Magnitude: {W}")
 
                 # Calculate load position
                 x_bar = ((2 * w1 + w2) / (w1 + w2)) * L / 3
@@ -1724,7 +1724,7 @@ class OspGrillage:
                     point_coordinate=[p2[0], self.y_elevation, p2[2]]
                 )
                 print(f"  Load Application Point:")
-                print(f"    x={load_point[0]:.3f}, y={load_point[1]:.3f}, z={load_point[2]:.3f}")
+                print(f"    x={load_point[0]}, y={load_point[1]}, z={load_point[2]}")
 
                 # Distribute load to nodes
                 print("\n  Distributing load to nodes:")
@@ -1743,22 +1743,23 @@ class OspGrillage:
                 print(f"\nElement {ele[0]}:")
                 p1 = ele[1]
                 p2 = ele[2]
-                print(f"  Node 1: x={p1.x:.3f}, y={p1.y:.3f}, z={p1.z:.3f}")
-                print(f"  Node 2: x={p2.x:.3f}, y={p2.y:.3f}, z={p2.z:.3f}")
+                # For Point objects
+                print(f"  Node 1: x={p1.x}, y={p1.y}, z={p1.z}")
+                print(f"  Node 2: x={p2.x}, y={p2.y}, z={p2.z}")
 
                 L = get_distance(p1, p2)
-                print(f"  Element Length: {L:.3f}")
+                print(f"  Element Length: {L}")
 
                 w1 = line_load_obj.interpolate_udl_magnitude([p1.x, p1.y, p1.z])
                 w2 = line_load_obj.interpolate_udl_magnitude([p2.x, p2.y, p2.z])
                 print(f"  Load Magnitudes:")
-                print(f"    w1 at p1: {w1:.3f}")
-                print(f"    w2 at p2: {w2:.3f}")
+                print(f"    w1 at p1: {w1}")
+                print(f"    w2 at p2: {w2}")
 
                 W = (w1 + w2) / 2
                 mag = W * L
-                print(f"  Average Load: {W:.3f}")
-                print(f"  Total Element Load: {mag:.3f}")
+                print(f"  Average Load: {W}")
+                print(f"  Total Element Load: {mag}")
 
                 x_bar = ((2 * w1 + w2) / (w1 + w2)) * L / 3
                 load_point = line_load_obj.get_point_given_distance(
@@ -1766,7 +1767,7 @@ class OspGrillage:
                     point_coordinate=[p2.x, p2.y, p2.z]
                 )
                 print(f"  Load Application Point:")
-                print(f"    x={load_point[0]:.3f}, y={load_point[1]:.3f}, z={load_point[2]:.3f}")
+                print(f"    x={load_point[0]}, y={load_point[1]}, z={load_point[2]}")
 
                 print("\n  Distributing load to nodes:")
                 load_str = self._assign_load_to_four_node(point=load_point, mag=mag)
@@ -1774,7 +1775,7 @@ class OspGrillage:
                 assigned_ele.append(ele[0])
 
         print("\n=== Line Load Distribution Complete ===")
-        return load_str_line    
+        return load_str_line
 
     def _assign_beam_ele_line_load(self, line_load_obj: LineLoading) -> list:
         load_str_line = []
