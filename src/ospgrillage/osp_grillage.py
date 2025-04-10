@@ -1698,44 +1698,107 @@ class OspGrillage:
             for intersect in intersect_list:
                 p1 = intersect[0]  # start point
                 p2 = intersect[1]  # end point
+                
+                # Convert string points to proper format if needed
+                if isinstance(p1, str):
+                    try:
+                        # Try to evaluate the string as a point
+                        coords = p1.strip('()[]').split(',')
+                        p1 = [float(x.strip()) for x in coords]
+                    except:
+                        print(f"Warning: Could not parse point 1: {p1}")
+                        continue
+                        
+                if isinstance(p2, str):
+                    try:
+                        # Try to evaluate the string as a point
+                        coords = p2.strip('()[]').split(',')
+                        p2 = [float(x.strip()) for x in coords]
+                    except:
+                        print(f"Warning: Could not parse point 2: {p2}")
+                        continue
+
                 print(f"Intersection Segment:")
-                # Safe printing that works for both string and float values
-                print(f"  Point 1: x={p1[0]}, y={p1[1]}, z={p1[2]}")
-                print(f"  Point 2: x={p2[0]}, y={p2[1]}, z={p2[2]}")
+                try:
+                    if isinstance(p1, (list, tuple)):
+                        print(f"  Point 1: x={p1[0]}, y={p1[1]}, z={p1[2]}")
+                    elif hasattr(p1, 'x'):
+                        print(f"  Point 1: x={p1.x}, y={p1.y}, z={p1.z}")
+                    else:
+                        print(f"  Point 1: {p1}")
 
-                # Calculate segment length
-                L = get_distance(p1, p2)
-                print(f"  Segment Length: {L}")
+                    if isinstance(p2, (list, tuple)):
+                        print(f"  Point 2: x={p2[0]}, y={p2[1]}, z={p2[2]}")
+                    elif hasattr(p2, 'x'):
+                        print(f"  Point 2: x={p2.x}, y={p2.y}, z={p2.z}")
+                    else:
+                        print(f"  Point 2: {p2}")
+                except Exception as e:
+                    print(f"Warning: Error printing points: {e}")
+                    print(f"Point 1 type: {type(p1)}, value: {p1}")
+                    print(f"Point 2 type: {type(p2)}, value: {p2}")
+                    continue
 
-                # Get load magnitudes
-                w1 = line_load_obj.interpolate_udl_magnitude([p1[0], 0, p1[1]])
-                w2 = line_load_obj.interpolate_udl_magnitude([p2[0], 0, p2[1]])
-                print(f"  Load Magnitudes:")
-                print(f"    w1 at p1: {w1}")
-                print(f"    w2 at p2: {w2}")
+                try:
+                    # Calculate segment length
+                    if isinstance(p1, (list, tuple)) and isinstance(p2, (list, tuple)):
+                        L = ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2 + (p2[2] - p1[2])**2)**0.5
+                    elif hasattr(p1, 'x') and hasattr(p2, 'x'):
+                        L = ((p2.x - p1.x)**2 + (p2.y - p1.y)**2 + (p2.z - p1.z)**2)**0.5
+                    else:
+                        print("Warning: Could not calculate length - invalid point format")
+                        continue
 
-                W = (w1 + w2) / 2
-                print(f"  Average Load Magnitude: {W}")
+                    print(f"  Segment Length: {L}")
 
-                # Calculate load position
-                x_bar = ((2 * w1 + w2) / (w1 + w2)) * L / 3
-                load_point = line_load_obj.get_point_given_distance(
-                    xbar=x_bar, 
-                    point_coordinate=[p2[0], self.y_elevation, p2[2]]
-                )
-                print(f"  Load Application Point:")
-                print(f"    x={load_point[0]}, y={load_point[1]}, z={load_point[2]}")
+                    # Get load magnitudes
+                    if isinstance(p1, (list, tuple)):
+                        w1 = line_load_obj.interpolate_udl_magnitude([p1[0], 0, p1[2]])
+                    else:
+                        w1 = line_load_obj.interpolate_udl_magnitude([p1.x, 0, p1.z])
 
-                # Distribute load to nodes
-                print("\n  Distributing load to nodes:")
-                load_str = self._assign_load_to_four_node(
-                    point=load_point, 
-                    mag=W, 
-                    shape_func=line_load_obj.shape_function
-                )
-                load_str_line += load_str
+                    if isinstance(p2, (list, tuple)):
+                        w2 = line_load_obj.interpolate_udl_magnitude([p2[0], 0, p2[2]])
+                    else:
+                        w2 = line_load_obj.interpolate_udl_magnitude([p2.x, 0, p2.z])
 
-        # Process colinear elements
+                    print(f"  Load Magnitudes:")
+                    print(f"    w1 at p1: {w1}")
+                    print(f"    w2 at p2: {w2}")
+
+                    W = (w1 + w2) / 2
+                    print(f"  Average Load Magnitude: {W}")
+
+                    # Calculate load position
+                    x_bar = ((2 * w1 + w2) / (w1 + w2)) * L / 3
+                    if isinstance(p2, (list, tuple)):
+                        load_point = line_load_obj.get_point_given_distance(
+                            xbar=x_bar, 
+                            point_coordinate=[p2[0], self.y_elevation, p2[2]]
+                        )
+                    else:
+                        load_point = line_load_obj.get_point_given_distance(
+                            xbar=x_bar, 
+                            point_coordinate=[p2.x, self.y_elevation, p2.z]
+                        )
+
+                    print(f"  Load Application Point:")
+                    print(f"    x={load_point[0]}, y={load_point[1]}, z={load_point[2]}")
+
+                    # Distribute load to nodes
+                    print("\n  Distributing load to nodes:")
+                    load_str = self._assign_load_to_four_node(
+                        point=load_point, 
+                        mag=W, 
+                        shape_func=line_load_obj.shape_function
+                    )
+                    load_str_line += load_str
+
+                except Exception as e:
+                    print(f"Warning: Error processing intersection: {e}")
+                    continue
+
+        # Process colinear elements (rest of the method remains the same)
         print("\nProcessing Colinear Elements:")
         assigned_ele = []
         for ele in line_ele_colinear:
@@ -1743,11 +1806,11 @@ class OspGrillage:
                 print(f"\nElement {ele[0]}:")
                 p1 = ele[1]
                 p2 = ele[2]
-                # For Point objects
+                
                 print(f"  Node 1: x={p1.x}, y={p1.y}, z={p1.z}")
                 print(f"  Node 2: x={p2.x}, y={p2.y}, z={p2.z}")
 
-                L = get_distance(p1, p2)
+                L = ((p2.x - p1.x)**2 + (p2.y - p1.y)**2 + (p2.z - p1.z)**2)**0.5
                 print(f"  Element Length: {L}")
 
                 w1 = line_load_obj.interpolate_udl_magnitude([p1.x, p1.y, p1.z])
@@ -1776,7 +1839,7 @@ class OspGrillage:
 
         print("\n=== Line Load Distribution Complete ===")
         return load_str_line
-
+        
     def _assign_beam_ele_line_load(self, line_load_obj: LineLoading) -> list:
         load_str_line = []
         ele_group = []
