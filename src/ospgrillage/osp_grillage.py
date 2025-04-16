@@ -2558,7 +2558,6 @@ class OspGrillage:
             raise ValueError("Both node_list and y_offsets must be non-empty")
             
         node_mapping = {}
-        new_elements = []
         
         # Get the last existing node tag to start numbering new nodes
         last_node_tag = max(self.Mesh_obj.node_spec.keys())
@@ -2568,10 +2567,12 @@ class OspGrillage:
         last_ele_tag = self.global_ele_counter
         current_ele_tag = last_ele_tag + 1
         
+        # Store original element commands
+        original_element_commands = self.element_command_list.copy()
+        
         # Create material for connecting elements (using elastic material)
         material_tag = self._get_material_tag()
         material_str = f'ops.uniaxialMaterial("Elastic", {material_tag}, {1e12})\n'  # Very stiff connection
-        self.material_command_list.append(material_str)
         
         # Process each original node
         for node in node_list:
@@ -2616,37 +2617,39 @@ class OspGrillage:
         
         # If we're working with a model instance (not generating a file)
         if not self.pyfile:
-            # First, store the current model state
-            existing_nodes = ops.getNodeTags()
-            
             # Re-initialize the model space with proper dimensions
             ops.wipe()
             ops.model('basic', '-ndm', self.__ndm, '-ndf', self.__ndf)
             
-            # Recreate all existing nodes
-            for node_tag in existing_nodes:
-                coords = ops.nodeCoord(node_tag)
+            # Create all nodes from node_spec
+            for node_tag, node_data in self.Mesh_obj.node_spec.items():
+                coords = node_data["coordinate"]
                 ops.node(node_tag, *coords)
             
-            # Create the new nodes
-            for node_tag, node_data in self.Mesh_obj.node_spec.items():
-                if node_tag > last_node_tag:  # Only create new nodes
-                    coords = node_data["coordinate"]
-                    ops.node(node_tag, *coords)
-                    
-            # Execute material command
+            # Execute material commands
             eval(material_str)
             
-            # Recreate existing elements
-            for ele_tag in ops.getEleTags():
-                # You might need to store and recreate element properties here
-                pass
-                
-            # Create the new connecting elements
+            # First recreate original elements
+            for ele_tag, ele_str in original_element_commands.items():
+                try:
+                    eval(ele_str)
+                except:
+                    print(f"Warning: Could not recreate element {ele_tag}")
+                    
+            # Then create the new connecting elements
             for ele_tag, ele_str in self.element_command_list.items():
                 if ele_tag >= last_ele_tag:  # Only create new elements
-                    eval(ele_str)
-        
+                    try:
+                        eval(ele_str)
+                    except:
+                        print(f"Warning: Could not create new element {ele_tag}")
+            
+            # Recreate boundary conditions
+            try:
+                self._write_op_fix(self.Mesh_obj)
+            except:
+                print("Warning: Could not fully recreate boundary conditions")
+                
         return node_mapping
 
     def print_node_coordinates(self, filter_nodes=None):
