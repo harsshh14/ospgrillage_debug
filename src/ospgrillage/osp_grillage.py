@@ -2537,6 +2537,101 @@ class OspGrillage:
         # remove all results
         self.results = Results(self.Mesh_obj)  # reset results
 
+    def create_duplicate_nodes_y(self, node_list: List[int], y_offsets: List[float]):
+        """
+        Creates duplicate nodes in the y-direction below the specified nodes and connects them with elements.
+        
+        Parameters:
+        -----------
+        node_list : List[int]
+            List of node tags to duplicate
+        y_offsets : List[float]
+            List of y-direction offsets (distances below original nodes) where duplicate nodes will be created
+        
+        Returns:
+        --------
+        dict
+            Dictionary mapping original nodes to their duplicates
+            Format: {original_node: [duplicate_node_1, duplicate_node_2, ...]}
+        """
+        if not node_list or not y_offsets:
+            raise ValueError("Both node_list and y_offsets must be non-empty")
+            
+        node_mapping = {}
+        new_elements = []
+        
+        # Get the last existing node tag to start numbering new nodes
+        last_node_tag = max(self.Mesh_obj.node_spec.keys())
+        current_node_tag = last_node_tag + 1
+        
+        # Get the last element tag to start numbering new elements
+        last_ele_tag = self.global_ele_counter
+        current_ele_tag = last_ele_tag + 1
+        
+        # Create material for connecting elements (using elastic material)
+        material_tag = self._get_material_tag()
+        material_str = f'ops.uniaxialMaterial("Elastic", {material_tag}, {1e12})\n'  # Very stiff connection
+        self.material_command_list.append(material_str)
+        
+        # Process each original node
+        for node in node_list:
+            if node not in self.Mesh_obj.node_spec:
+                raise ValueError(f"Node {node} not found in model")
+                
+            original_coords = self.Mesh_obj.node_spec[node]["coordinate"]
+            node_duplicates = []
+            
+            # Create duplicate nodes at each y-offset
+            for y_offset in y_offsets:
+                new_coords = [
+                    original_coords[0],  # x coordinate
+                    original_coords[1] - y_offset,  # y coordinate (offset downward)
+                    original_coords[2]   # z coordinate
+                ]
+                
+                # Add new node to mesh object
+                self.Mesh_obj.node_spec[current_node_tag] = {
+                    "tag": current_node_tag,
+                    "coordinate": new_coords,
+                    "x_group": self.Mesh_obj.node_spec[node]["x_group"],
+                    "z_group": self.Mesh_obj.node_spec[node]["z_group"]
+                }
+                
+                # Create element connecting original node to duplicate
+                element_str = (
+                    f'ops.element("zeroLength", {current_ele_tag}, {node}, {current_node_tag}, '
+                    f'"-mat", {material_tag}, "-dir", 1, {material_tag}, "-dir", 2, {material_tag}, "-dir", 3, '
+                    f'{material_tag}, "-dir", 4, {material_tag}, "-dir", 5, {material_tag}, "-dir", 6)\n'
+                )
+                self.element_command_list[current_ele_tag] = element_str
+                
+                node_duplicates.append(current_node_tag)
+                current_node_tag += 1
+                current_ele_tag += 1
+                
+            node_mapping[node] = node_duplicates
+            
+        # Update the global element counter
+        self.global_ele_counter = current_ele_tag
+        
+        # If we're working with a model instance (not generating a file)
+        if not self.pyfile:
+            # Create the nodes and elements in OpenSees
+            for node_tag, node_data in self.Mesh_obj.node_spec.items():
+                if node_tag > last_node_tag:  # Only create new nodes
+                    coords = node_data["coordinate"]
+                    ops.node(node_tag, *coords)
+                    
+            # Execute material command
+            eval(material_str)
+            
+            # Create the connecting elements
+            for ele_tag, ele_str in self.element_command_list.items():
+                if ele_tag >= last_ele_tag:  # Only create new elements
+                    eval(ele_str)
+        
+        return node_mapping
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Analysis:
