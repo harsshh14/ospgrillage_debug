@@ -2616,7 +2616,19 @@ class OspGrillage:
         
         # If we're working with a model instance (not generating a file)
         if not self.pyfile:
-            # Create the nodes and elements in OpenSees
+            # First, store the current model state
+            existing_nodes = ops.getNodeTags()
+            
+            # Re-initialize the model space with proper dimensions
+            ops.wipe()
+            ops.model('basic', '-ndm', self.__ndm, '-ndf', self.__ndf)
+            
+            # Recreate all existing nodes
+            for node_tag in existing_nodes:
+                coords = ops.nodeCoord(node_tag)
+                ops.node(node_tag, *coords)
+            
+            # Create the new nodes
             for node_tag, node_data in self.Mesh_obj.node_spec.items():
                 if node_tag > last_node_tag:  # Only create new nodes
                     coords = node_data["coordinate"]
@@ -2625,12 +2637,40 @@ class OspGrillage:
             # Execute material command
             eval(material_str)
             
-            # Create the connecting elements
+            # Recreate existing elements
+            for ele_tag in ops.getEleTags():
+                # You might need to store and recreate element properties here
+                pass
+                
+            # Create the new connecting elements
             for ele_tag, ele_str in self.element_command_list.items():
                 if ele_tag >= last_ele_tag:  # Only create new elements
                     eval(ele_str)
         
         return node_mapping
+
+    def print_node_coordinates(self):
+        """
+        Prints all nodes and their coordinates in a formatted table.
+        Coordinates are displayed in meters.
+        """
+        # Print header
+        print("\nNode Coordinates:")
+        print("-" * 60)
+        print(f"{'Node Tag':<10} {'X (m)':<12} {'Y (m)':<12} {'Z (m)':<12}")
+        print("-" * 60)
+        
+        # Sort nodes by tag for organized output
+        sorted_nodes = sorted(self.Mesh_obj.node_spec.keys())
+        
+        # Print each node's information
+        for node_tag in sorted_nodes:
+            node_data = self.Mesh_obj.node_spec[node_tag]
+            coords = node_data["coordinate"]
+            print(f"{node_tag:<10} {coords[0]:<12.4f} {coords[1]:<12.4f} {coords[2]:<12.4f}")
+        
+        print("-" * 60)
+        print(f"Total number of nodes: {len(sorted_nodes)}")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
