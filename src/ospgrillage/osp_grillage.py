@@ -2649,10 +2649,15 @@ class OspGrillage:
         
         return node_mapping
 
-    def print_node_coordinates(self):
+    def print_node_coordinates(self, filter_nodes=None):
         """
         Prints all nodes and their coordinates in a formatted table.
         Coordinates are displayed in meters.
+        
+        Parameters:
+        -----------
+        filter_nodes : List[int], optional
+            If provided, only prints information for these node tags
         """
         # Print header
         print("\nNode Coordinates:")
@@ -2661,7 +2666,10 @@ class OspGrillage:
         print("-" * 60)
         
         # Sort nodes by tag for organized output
-        sorted_nodes = sorted(self.Mesh_obj.node_spec.keys())
+        if filter_nodes is not None:
+            sorted_nodes = sorted(n for n in filter_nodes if n in self.Mesh_obj.node_spec)
+        else:
+            sorted_nodes = sorted(self.Mesh_obj.node_spec.keys())
         
         # Print each node's information
         for node_tag in sorted_nodes:
