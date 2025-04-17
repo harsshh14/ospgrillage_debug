@@ -326,6 +326,8 @@ class OspGrillage:
         }
         self.edge_support_type_dict.update({0: self.fixity_vector["pin"]})
 
+        self.rigid_link_command_list = []
+
     def _create_mesh(self, **kwargs):
         """
         Create the :class:~ospgrillage.mesh.Mesh class.
@@ -2911,6 +2913,86 @@ class OspGrillage:
         
         print("-" * 70)
         print(f"Total number of truss elements created: {len(element_tags)}")
+
+    def create_rigid_links_for_duplicate_nodes(self, duplicate_nodes_dict: dict):
+        """
+        Create rigid beam links between original nodes (master) and their duplicate nodes (slave).
+        Master node: Node on the bridge just above the duplicate node
+        Slave node: Duplicate node below the master node
+        """
+        created_links = []
+        
+        # Group duplicate nodes by their original node
+        nodes_by_original = {}
+        for node_tag, data in duplicate_nodes_dict.items():
+            original_node = data['original_node']
+            if original_node not in nodes_by_original:
+                nodes_by_original[original_node] = []
+            nodes_by_original[original_node].append((node_tag, data))
+        
+        print("\nCreating rigid links between master and slave nodes:")
+        print("--------------------------------------------------")
+        
+        # Create rigid links for each original node and its duplicates
+        for original_node, duplicate_nodes in nodes_by_original.items():
+            # Sort duplicate nodes by y-coordinate (from top to bottom)
+            sorted_duplicates = sorted(duplicate_nodes, key=lambda n: n[1]['coordinate'][1])
+            
+            try:
+                if not self.pyfile:
+                    # Verify master node exists
+                    try:
+                        master_coords = ops.nodeCoord(original_node)
+                    except:
+                        print(f"Warning: Master node {original_node} not found in model")
+                        continue
+                    
+                    # Create rigid links for each duplicate node
+                    for slave_tag, slave_data in sorted_duplicates:
+                        try:
+                            slave_coords = ops.nodeCoord(slave_tag)
+                            print(f"Creating rigid link: Master node {original_node} -> Slave node {slave_tag}")
+                            print(f"  Master coordinates: ({master_coords[0]:.3f}, {master_coords[1]:.3f}, {master_coords[2]:.3f})")
+                            print(f"  Slave coordinates:  ({slave_coords[0]:.3f}, {slave_coords[1]:.3f}, {slave_coords[2]:.3f})")
+                            
+                            # Create rigid link
+                            ops.rigidLink('beam', original_node, slave_tag)
+                            created_links.append((original_node, slave_tag))
+                            
+                            # Add to command list
+                            link_str = f'ops.rigidLink("beam", {original_node}, {slave_tag})\n'
+                            self.rigid_link_command_list.append(link_str)
+                            
+                            print(f"  Rigid link created successfully")
+                            print("--------------------------------------------------")
+                            
+                        except Exception as e:
+                            print(f"Warning: Could not create rigid link between nodes {original_node} and {slave_tag}: {str(e)}")
+                            continue
+                            
+            except Exception as e:
+                print(f"Error processing original node {original_node}: {str(e)}")
+                continue
+        
+        # Print summary of created links
+        print("\nRigid Link Connections Summary:")
+        print("--------------------------------------------------")
+        print("Master Node    Slave Node    Y-Offset")
+        print("--------------------------------------------------")
+        
+        for master_node, slave_node in created_links:
+            try:
+                master_coords = ops.nodeCoord(master_node)
+                slave_coords = ops.nodeCoord(slave_node)
+                y_offset = abs(master_coords[1] - slave_coords[1])
+                print(f"{master_node:<13} {slave_node:<12} {y_offset:.3f} m")
+            except:
+                print(f"{master_node:<13} {slave_node:<12} Error getting coordinates")
+        
+        print("--------------------------------------------------")
+        print(f"Total rigid links created: {len(created_links)}")
+        
+        return created_links
 
 
 # ---------------------------------------------------------------------------------------------------------------------
