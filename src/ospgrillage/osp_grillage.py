@@ -2754,10 +2754,12 @@ class OspGrillage:
                 length = np.sqrt(sum((c1 - c2)**2 for c1, c2 in zip(coord_i, coord_j)))
                 print(f"\nElement Length: {length:.4f} m")
         
-        # Extract other properties
-        area = re.findall(r', (\d+\.?\d*),', element_str)[0]
-        print(f"\nProperties:")
-        print(f"  Area: {float(area):.6f} m²")
+        # Extract area - fixed pattern to correctly capture the area value
+        area_match = re.search(r'ops.element\("Truss", \d+, \d+, \d+, ([\d.]+),', element_str)
+        if area_match:
+            area = float(area_match.group(1))
+            print(f"\nProperties:")
+            print(f"  Area: {area:.6f} m²")
         
         print("-" * 50)
 
