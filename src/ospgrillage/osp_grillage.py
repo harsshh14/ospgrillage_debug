@@ -2642,6 +2642,125 @@ class OspGrillage:
         print("-" * 60)
         print(f"Total number of nodes: {len(sorted_nodes)}")
 
+    def add_truss_element(self, node_i: int, node_j: int, area: float, material_params: dict, element_tag: int = None, 
+                          rho: float = 0.0, c_mass: int = 0, do_rayleigh: int = 1):
+        """
+        Creates a truss element between two specified nodes.
+        
+        Parameters:
+        -----------
+        node_i : int
+            First node tag
+        node_j : int
+            Second node tag
+        area : float
+            Cross-sectional area of the truss
+        material_params : dict
+            Dictionary containing material parameters with keys:
+            - 'Fy': yield strength
+            - 'E': elastic modulus
+            - 'b': strain-hardening ratio
+            Additional optional parameters:
+            - 'material_tag': if provided, uses existing material instead of creating new
+        element_tag : int, optional
+            Tag for the element. If None, automatically assigned
+        rho : float, optional
+            Mass per unit length (default: 0.0)
+        c_mass : int, optional
+            Lumped mass matrix flag (0 or 1, default: 0)
+        do_rayleigh : int, optional
+            Rayleigh damping flag (0 or 1, default: 1)
+            
+        Returns:
+        --------
+        tuple
+            (element_tag, material_tag) of the created element and material
+        """
+        # Verify nodes exist
+        if node_i not in self.Mesh_obj.node_spec or node_j not in self.Mesh_obj.node_spec:
+            raise ValueError(f"Node {node_i} or {node_j} not found in model")
+        
+        # Get or create material tag
+        if 'material_tag' in material_params:
+            material_tag = material_params['material_tag']
+        else:
+            material_tag = self._get_material_tag()
+            # Create Steel01 material
+            material_str = (
+                f'ops.uniaxialMaterial("Steel01", {material_tag}, '
+                f'{material_params["E"]}, {material_params["Fy"]}, {material_params["b"]})\n'
+            )
+            self.material_command_list.append(material_str)
+            if not self.pyfile:
+                eval(material_str)
+        
+        # Get or assign element tag
+        if element_tag is None:
+            element_tag = self.global_ele_counter
+            self.global_ele_counter += 1
+        
+        # Create truss element command
+        element_str = (
+            f'ops.element("Truss", {element_tag}, {node_i}, {node_j}, {area}, '
+            f'{material_tag}, "-rho", {rho}, "-cMass", {c_mass}, "-doRayleigh", {do_rayleigh})\n'
+        )
+        
+        # Add to element command list
+        self.element_command_list[element_tag] = element_str
+        
+        # If working with model instance, create the element
+        if not self.pyfile:
+            eval(element_str)
+        
+        return element_tag, material_tag
+
+    def print_truss_info(self, element_tag: int):
+        """
+        Prints information about a specific truss element.
+        
+        Parameters:
+        -----------
+        element_tag : int
+            Tag of the truss element to display information for
+        """
+        if element_tag not in self.element_command_list:
+            print(f"Element {element_tag} not found")
+            return
+            
+        element_str = self.element_command_list[element_tag]
+        print("\nTruss Element Information:")
+        print("-" * 50)
+        print(f"Element Tag: {element_tag}")
+        
+        # Extract node information
+        import re
+        nodes = re.findall(r'ops.element\("Truss", \d+, (\d+), (\d+),', element_str)
+        if nodes:
+            node_i, node_j = map(int, nodes[0])
+            print(f"\nNodes:")
+            print(f"  Node i: {node_i}")
+            print(f"  Node j: {node_j}")
+            
+            # Print node coordinates
+            if node_i in self.Mesh_obj.node_spec and node_j in self.Mesh_obj.node_spec:
+                coord_i = self.Mesh_obj.node_spec[node_i]['coordinate']
+                coord_j = self.Mesh_obj.node_spec[node_j]['coordinate']
+                print(f"\nCoordinates:")
+                print(f"  Node {node_i}: ({coord_i[0]:.4f}, {coord_i[1]:.4f}, {coord_i[2]:.4f})")
+                print(f"  Node {node_j}: ({coord_j[0]:.4f}, {coord_j[1]:.4f}, {coord_j[2]:.4f})")
+                
+                # Calculate length
+                import numpy as np
+                length = np.sqrt(sum((c1 - c2)**2 for c1, c2 in zip(coord_i, coord_j)))
+                print(f"\nElement Length: {length:.4f} m")
+        
+        # Extract other properties
+        area = re.findall(r', (\d+\.?\d*),', element_str)[0]
+        print(f"\nProperties:")
+        print(f"  Area: {float(area):.6f} m²")
+        
+        print("-" * 50)
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Analysis:
