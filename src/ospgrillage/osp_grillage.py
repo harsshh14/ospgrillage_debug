@@ -2564,6 +2564,9 @@ class OspGrillage:
         duplicate_nodes_list = []  # List to store all duplicate nodes
         duplicate_nodes_dict = {}  # Dictionary to store duplicate nodes with their properties
         
+        # Store original element commands
+        original_element_commands = self.element_command_list.copy()
+        
         # Get the last existing node tag to start numbering new nodes
         last_node_tag = max(self.Mesh_obj.node_spec.keys())
         current_node_tag = last_node_tag + 1
@@ -2613,17 +2616,27 @@ class OspGrillage:
             ops.wipe()
             ops.model('basic', '-ndm', self.__ndm, '-ndf', self.__ndf)
             
-            # Create all nodes from node_spec
+            # Create ALL nodes from node_spec
             for node_tag, node_data in self.Mesh_obj.node_spec.items():
                 coords = node_data["coordinate"]
                 ops.node(node_tag, *coords)
+            
+            # Recreate all original elements
+            for ele_tag, ele_str in original_element_commands.items():
+                try:
+                    eval(ele_str)
+                except:
+                    print(f"Warning: Could not recreate element {ele_tag}")
             
             # Recreate boundary conditions
             try:
                 self._write_op_fix(self.Mesh_obj)
             except:
                 print("Warning: Could not fully recreate boundary conditions")
-                
+        
+        # Store the current state of the model
+        self.current_node_spec = self.Mesh_obj.node_spec.copy()
+            
         return node_mapping, duplicate_nodes_list, duplicate_nodes_dict
 
     def print_node_coordinates(self, filter_nodes=None):
@@ -2810,6 +2823,17 @@ class OspGrillage:
         """
         created_elements = []
         
+        # First ensure all nodes exist in the model
+        if not self.pyfile:
+            # Re-initialize the model space with proper dimensions
+            ops.wipe()
+            ops.model('basic', '-ndm', self.__ndm, '-ndf', self.__ndf)
+            
+            # Create ALL nodes from node_spec
+            for node_tag, node_data in self.Mesh_obj.node_spec.items():
+                coords = node_data["coordinate"]
+                ops.node(node_tag, *coords)
+        
         # Group nodes by x-coordinate
         nodes_by_x = {}
         for node_tag, data in duplicate_nodes_dict.items():
@@ -2830,22 +2854,25 @@ class OspGrillage:
                     if node1_data['coordinate'][1] == node2_data['coordinate'][1]:
                         continue
                     
-                    # Create truss element between the nodes
-                    element_tag, material_tag = self.add_truss_element(
-                        node_i=node1_tag,
-                        node_j=node2_tag,
-                        area=area,
-                        material_params=material_params,
-                        rho=rho,
-                        c_mass=c_mass,
-                        do_rayleigh=do_rayleigh
-                    )
-                    
-                    created_elements.append(element_tag)
-                    
-                    # Store material tag for reuse
-                    if 'material_tag' not in material_params:
-                        material_params['material_tag'] = material_tag
+                    try:
+                        # Create truss element between the nodes
+                        element_tag, material_tag = self.add_truss_element(
+                            node_i=node1_tag,
+                            node_j=node2_tag,
+                            area=area,
+                            material_params=material_params,
+                            rho=rho,
+                            c_mass=c_mass,
+                            do_rayleigh=do_rayleigh
+                        )
+                        
+                        created_elements.append(element_tag)
+                        
+                        # Store material tag for reuse
+                        if 'material_tag' not in material_params:
+                            material_params['material_tag'] = material_tag
+                    except Exception as e:
+                        print(f"Warning: Could not create truss between nodes {node1_tag} and {node2_tag}: {str(e)}")
         
         return created_elements
 
