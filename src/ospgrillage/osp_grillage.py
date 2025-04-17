@@ -2763,6 +2763,116 @@ class OspGrillage:
         
         print("-" * 50)
 
+    def connect_duplicate_nodes_with_trusses(self, duplicate_nodes_dict: dict, material_params: dict, area: float, 
+                                       rho: float = 7850.0, c_mass: int = 0, do_rayleigh: int = 0):
+        """
+        Connects duplicate nodes with truss elements based on specified conditions:
+        1. Only connects nodes with the same x-coordinate
+        2. Does not connect nodes with the same y-coordinate
+        
+        Parameters:
+        -----------
+        duplicate_nodes_dict : dict
+            Dictionary containing duplicate node information (from create_duplicate_nodes_y)
+        material_params : dict
+            Dictionary containing material parameters for truss elements:
+            - 'E': elastic modulus
+            - 'Fy': yield strength
+            - 'b': strain hardening ratio
+        area : float
+            Cross-sectional area for truss elements (m²)
+        rho : float, optional
+            Mass per unit length (default: 7850.0 kg/m³)
+        c_mass : int, optional
+            Lumped mass matrix flag (0 or 1, default: 0)
+        do_rayleigh : int, optional
+            Rayleigh damping flag (0 or 1, default: 0)
+        
+        Returns:
+        --------
+        list
+            List of created element tags
+        """
+        created_elements = []
+        
+        # Group nodes by x-coordinate
+        nodes_by_x = {}
+        for node_tag, data in duplicate_nodes_dict.items():
+            x_coord = data['coordinate'][0]
+            if x_coord not in nodes_by_x:
+                nodes_by_x[x_coord] = []
+            nodes_by_x[x_coord].append((node_tag, data))
+        
+        # For each group of nodes with the same x-coordinate
+        for x_coord, nodes in nodes_by_x.items():
+            # Sort nodes by y-coordinate
+            sorted_nodes = sorted(nodes, key=lambda n: n[1]['coordinate'][1])
+            
+            # Connect each node with all other nodes at different y-coordinates
+            for i, (node1_tag, node1_data) in enumerate(sorted_nodes):
+                for node2_tag, node2_data in sorted_nodes[i+1:]:
+                    # Skip if nodes have the same y-coordinate
+                    if node1_data['coordinate'][1] == node2_data['coordinate'][1]:
+                        continue
+                    
+                    # Create truss element between the nodes
+                    element_tag, material_tag = self.add_truss_element(
+                        node_i=node1_tag,
+                        node_j=node2_tag,
+                        area=area,
+                        material_params=material_params,
+                        rho=rho,
+                        c_mass=c_mass,
+                        do_rayleigh=do_rayleigh
+                    )
+                    
+                    created_elements.append(element_tag)
+                    
+                    # Store material tag for reuse
+                    if 'material_tag' not in material_params:
+                        material_params['material_tag'] = material_tag
+        
+        return created_elements
+
+    def print_truss_connections_summary(self, element_tags: list):
+        """
+        Prints a summary of the created truss connections.
+        
+        Parameters:
+        -----------
+        element_tags : list
+            List of truss element tags to summarize
+        """
+        print("\nTruss Connections Summary:")
+        print("-" * 70)
+        print(f"{'Element Tag':<12} {'Node i':<8} {'Node j':<8} {'Length (m)':<12} {'Area (m²)':<12}")
+        print("-" * 70)
+        
+        for ele_tag in element_tags:
+            element_str = self.element_command_list[ele_tag]
+            
+            # Extract nodes
+            import re
+            nodes = re.findall(r'ops.element\("Truss", \d+, (\d+), (\d+),', element_str)[0]
+            node_i, node_j = map(int, nodes)
+            
+            # Get coordinates
+            coord_i = self.Mesh_obj.node_spec[node_i]['coordinate']
+            coord_j = self.Mesh_obj.node_spec[node_j]['coordinate']
+            
+            # Calculate length
+            import numpy as np
+            length = np.sqrt(sum((c1 - c2)**2 for c1, c2 in zip(coord_i, coord_j)))
+            
+            # Extract area
+            area_match = re.search(r'ops.element\("Truss", \d+, \d+, \d+, ([\d.]+),', element_str)
+            area = float(area_match.group(1))
+            
+            print(f"{ele_tag:<12} {node_i:<8} {node_j:<8} {length:<12.4f} {area:<12.6f}")
+        
+        print("-" * 70)
+        print(f"Total number of truss elements created: {len(element_tags)}")
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Analysis:
