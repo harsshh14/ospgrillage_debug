@@ -2917,10 +2917,19 @@ class OspGrillage:
     def create_rigid_links_for_duplicate_nodes(self, duplicate_nodes_dict: dict):
         """
         Create rigid beam links between original nodes (master) and their duplicate nodes (slave).
-        Master node: Node on the bridge just above the duplicate node
-        Slave node: Duplicate node below the master node
         """
         created_links = []
+        
+        # First, ensure proper boundary conditions exist
+        if not self.pyfile:
+            # Find support nodes (you may need to adjust these based on your model)
+            support_nodes = [1, 31, 61, 91, 121, 151]  # Adjust these node numbers based on your model
+            for node in support_nodes:
+                try:
+                    # Fix translations and free rotations
+                    ops.fix(node, 1, 1, 1, 0, 0, 0)
+                except:
+                    print(f"Warning: Could not apply boundary condition to node {node}")
         
         # Group duplicate nodes by their original node
         nodes_by_original = {}
@@ -2952,14 +2961,11 @@ class OspGrillage:
                         try:
                             slave_coords = ops.nodeCoord(slave_tag)
                             
-                            # Release DOFs before creating rigid link
-                            # This helps prevent over-constraining
-                            ops.equalDOF(original_node, slave_tag, 1, 2, 3)  # Only constrain translations
+                            # Use equalDOF command with only necessary DOFs
+                            # Constrain only translations (1=x, 2=y, 3=z)
+                            ops.equalDOF(original_node, slave_tag, 1, 2, 3)
                             
                             print(f"Created constraint: Master node {original_node} -> Slave node {slave_tag}")
-                            print(f"  Master coordinates: ({master_coords[0]:.3f}, {master_coords[1]:.3f}, {master_coords[2]:.3f})")
-                            print(f"  Slave coordinates:  ({slave_coords[0]:.3f}, {slave_coords[1]:.3f}, {slave_coords[2]:.3f})")
-                            
                             created_links.append((original_node, slave_tag))
                             
                         except Exception as e:
@@ -2969,24 +2975,6 @@ class OspGrillage:
             except Exception as e:
                 print(f"Error processing original node {original_node}: {str(e)}")
                 continue
-        
-        # Print summary of created links
-        print("\nRigid Link Connections Summary:")
-        print("--------------------------------------------------")
-        print("Master Node    Slave Node    Y-Offset")
-        print("--------------------------------------------------")
-        
-        for master_node, slave_node in created_links:
-            try:
-                master_coords = ops.nodeCoord(master_node)
-                slave_coords = ops.nodeCoord(slave_node)
-                y_offset = abs(master_coords[1] - slave_coords[1])
-                print(f"{master_node:<13} {slave_node:<12} {y_offset:.3f} m")
-            except:
-                print(f"{master_node:<13} {slave_node:<12} Error getting coordinates")
-        
-        print("--------------------------------------------------")
-        print(f"Total constraints created: {len(created_links)}")
         
         return created_links
 
