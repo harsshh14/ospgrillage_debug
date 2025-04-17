@@ -2823,51 +2823,82 @@ class OspGrillage:
         """
         created_elements = []
         
-        # Group nodes by x-coordinate
-        nodes_by_x = {}
-        for node_tag, data in duplicate_nodes_dict.items():
-            x_coord = data['coordinate'][0]
-            if x_coord not in nodes_by_x:
-                nodes_by_x[x_coord] = []
-            nodes_by_x[x_coord].append((node_tag, data))
-        
-        # Create material first
-        material_tag = self._get_material_tag()
-        material_str = f'ops.uniaxialMaterial("Steel01", {material_tag}, {material_params["E"]}, {material_params["Fy"]}, {material_params["b"]})\n'
-        if not self.pyfile:
-            eval(material_str)
-        self.material_command_list.append(material_str)
-        
-        # For each group of nodes with the same x-coordinate
-        for x_coord, nodes in nodes_by_x.items():
-            # Sort nodes by y-coordinate
-            sorted_nodes = sorted(nodes, key=lambda n: n[1]['coordinate'][1])
+        try:
+            # Group nodes by x-coordinate
+            nodes_by_x = {}
+            for node_tag, data in duplicate_nodes_dict.items():
+                x_coord = data['coordinate'][0]
+                if x_coord not in nodes_by_x:
+                    nodes_by_x[x_coord] = []
+                nodes_by_x[x_coord].append((node_tag, data))
             
-            # Connect each node with all other nodes at different y-coordinates
-            for i, (node1_tag, node1_data) in enumerate(sorted_nodes):
-                for node2_tag, node2_data in sorted_nodes[i+1:]:
-                    # Skip if nodes have the same y-coordinate
-                    if node1_data['coordinate'][1] == node2_data['coordinate'][1]:
-                        continue
-                    
-                    # Create element tag
-                    element_tag = self.global_ele_counter
-                    self.global_ele_counter += 1
-                    
-                    # Create truss element command
-                    element_str = (
-                        f'ops.element("Truss", {element_tag}, {node1_tag}, {node2_tag}, {area}, {material_tag})\n'
-                    )
-                    
-                    # Add to element command list
-                    self.element_command_list[element_tag] = element_str
-                    
-                    # If working with model instance, create the element
-                    if not self.pyfile:
-                        eval(element_str)
-                    
-                    created_elements.append(element_tag)
+            print(f"Grouped nodes by x-coordinate: {len(nodes_by_x)} groups")
+            
+            # Create material first
+            material_tag = self._get_material_tag()
+            print(f"Creating material with tag {material_tag}")
+            
+            # Create the material with error checking
+            try:
+                ops.uniaxialMaterial("Steel01", material_tag, material_params["E"], material_params["Fy"], material_params["b"])
+                print("Material created successfully")
+            except Exception as e:
+                print(f"Error creating material: {str(e)}")
+                raise
+                
+            material_str = f'ops.uniaxialMaterial("Steel01", {material_tag}, {material_params["E"]}, {material_params["Fy"]}, {material_params["b"]})\n'
+            self.material_command_list.append(material_str)
+            
+            # For each group of nodes with the same x-coordinate
+            for x_coord, nodes in nodes_by_x.items():
+                print(f"\nProcessing nodes at x = {x_coord}")
+                
+                # Sort nodes by y-coordinate
+                sorted_nodes = sorted(nodes, key=lambda n: n[1]['coordinate'][1])
+                print(f"Found {len(sorted_nodes)} nodes in this group")
+                
+                # Connect each node with all other nodes at different y-coordinates
+                for i, (node1_tag, node1_data) in enumerate(sorted_nodes):
+                    for node2_tag, node2_data in sorted_nodes[i+1:]:
+                        # Skip if nodes have the same y-coordinate
+                        if node1_data['coordinate'][1] == node2_data['coordinate'][1]:
+                            continue
+                        
+                        # Verify nodes exist in OpenSees
+                        try:
+                            node1_coords = ops.nodeCoord(node1_tag)
+                            node2_coords = ops.nodeCoord(node2_tag)
+                        except Exception as e:
+                            print(f"Error checking node coordinates for {node1_tag} or {node2_tag}: {str(e)}")
+                            continue
+                        
+                        print(f"Creating truss between nodes {node1_tag} and {node2_tag}")
+                        
+                        # Create element tag
+                        element_tag = self.global_ele_counter
+                        self.global_ele_counter += 1
+                        
+                        try:
+                            # Create truss element
+                            ops.element("Truss", element_tag, node1_tag, node2_tag, area, material_tag)
+                            print(f"Successfully created truss element {element_tag}")
+                            
+                            # Add to element command list
+                            element_str = (
+                                f'ops.element("Truss", {element_tag}, {node1_tag}, {node2_tag}, {area}, {material_tag})\n'
+                            )
+                            self.element_command_list[element_tag] = element_str
+                            created_elements.append(element_tag)
+                            
+                        except Exception as e:
+                            print(f"Error creating truss element {element_tag}: {str(e)}")
+                            continue
         
+        except Exception as e:
+            print(f"Error in connect_duplicate_nodes_with_trusses: {str(e)}")
+            raise
+            
+        print(f"\nTotal truss elements created: {len(created_elements)}")
         return created_elements
 
     def print_truss_connections_summary(self, element_tags: list):
