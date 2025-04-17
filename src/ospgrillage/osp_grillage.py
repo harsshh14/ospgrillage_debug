@@ -2539,7 +2539,7 @@ class OspGrillage:
 
     def create_duplicate_nodes_y(self, node_list: List[int], y_offsets: List[float]):
         """
-        Creates duplicate nodes in the y-direction below the specified nodes and connects them with elements.
+        Creates duplicate nodes in the y-direction below the specified nodes without connecting elements.
         
         Parameters:
         -----------
@@ -2562,17 +2562,6 @@ class OspGrillage:
         # Get the last existing node tag to start numbering new nodes
         last_node_tag = max(self.Mesh_obj.node_spec.keys())
         current_node_tag = last_node_tag + 1
-        
-        # Get the last element tag to start numbering new elements
-        last_ele_tag = self.global_ele_counter
-        current_ele_tag = last_ele_tag + 1
-        
-        # Store original element commands
-        original_element_commands = self.element_command_list.copy()
-        
-        # Create material for connecting elements (using elastic material)
-        material_tag = self._get_material_tag()
-        material_str = f'ops.uniaxialMaterial("Elastic", {material_tag}, {1e12})\n'  # Very stiff connection
         
         # Process each original node
         for node in node_list:
@@ -2598,22 +2587,10 @@ class OspGrillage:
                     "z_group": self.Mesh_obj.node_spec[node]["z_group"]
                 }
                 
-                # Create element connecting original node to duplicate
-                element_str = (
-                    f'ops.element("zeroLength", {current_ele_tag}, {node}, {current_node_tag}, '
-                    f'"-mat", {material_tag}, "-dir", 1, {material_tag}, "-dir", 2, {material_tag}, "-dir", 3, '
-                    f'{material_tag}, "-dir", 4, {material_tag}, "-dir", 5, {material_tag}, "-dir", 6)\n'
-                )
-                self.element_command_list[current_ele_tag] = element_str
-                
                 node_duplicates.append(current_node_tag)
                 current_node_tag += 1
-                current_ele_tag += 1
-                
-            node_mapping[node] = node_duplicates
             
-        # Update the global element counter
-        self.global_ele_counter = current_ele_tag
+            node_mapping[node] = node_duplicates
         
         # If we're working with a model instance (not generating a file)
         if not self.pyfile:
@@ -2625,24 +2602,6 @@ class OspGrillage:
             for node_tag, node_data in self.Mesh_obj.node_spec.items():
                 coords = node_data["coordinate"]
                 ops.node(node_tag, *coords)
-            
-            # Execute material commands
-            eval(material_str)
-            
-            # First recreate original elements
-            for ele_tag, ele_str in original_element_commands.items():
-                try:
-                    eval(ele_str)
-                except:
-                    print(f"Warning: Could not recreate element {ele_tag}")
-                    
-            # Then create the new connecting elements
-            for ele_tag, ele_str in self.element_command_list.items():
-                if ele_tag >= last_ele_tag:  # Only create new elements
-                    try:
-                        eval(ele_str)
-                    except:
-                        print(f"Warning: Could not create new element {ele_tag}")
             
             # Recreate boundary conditions
             try:
