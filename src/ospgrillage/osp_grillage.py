@@ -2823,17 +2823,6 @@ class OspGrillage:
         """
         created_elements = []
         
-        # First ensure all nodes exist in the model
-        if not self.pyfile:
-            # Re-initialize the model space with proper dimensions
-            ops.wipe()
-            ops.model('basic', '-ndm', self.__ndm, '-ndf', self.__ndf)
-            
-            # Create ALL nodes from node_spec
-            for node_tag, node_data in self.Mesh_obj.node_spec.items():
-                coords = node_data["coordinate"]
-                ops.node(node_tag, *coords)
-        
         # Group nodes by x-coordinate
         nodes_by_x = {}
         for node_tag, data in duplicate_nodes_dict.items():
@@ -2841,6 +2830,13 @@ class OspGrillage:
             if x_coord not in nodes_by_x:
                 nodes_by_x[x_coord] = []
             nodes_by_x[x_coord].append((node_tag, data))
+        
+        # Create material first
+        material_tag = self._get_material_tag()
+        material_str = f'ops.uniaxialMaterial("Steel01", {material_tag}, {material_params["E"]}, {material_params["Fy"]}, {material_params["b"]})\n'
+        if not self.pyfile:
+            eval(material_str)
+        self.material_command_list.append(material_str)
         
         # For each group of nodes with the same x-coordinate
         for x_coord, nodes in nodes_by_x.items():
@@ -2854,25 +2850,23 @@ class OspGrillage:
                     if node1_data['coordinate'][1] == node2_data['coordinate'][1]:
                         continue
                     
-                    try:
-                        # Create truss element between the nodes
-                        element_tag, material_tag = self.add_truss_element(
-                            node_i=node1_tag,
-                            node_j=node2_tag,
-                            area=area,
-                            material_params=material_params,
-                            rho=rho,
-                            c_mass=c_mass,
-                            do_rayleigh=do_rayleigh
-                        )
-                        
-                        created_elements.append(element_tag)
-                        
-                        # Store material tag for reuse
-                        if 'material_tag' not in material_params:
-                            material_params['material_tag'] = material_tag
-                    except Exception as e:
-                        print(f"Warning: Could not create truss between nodes {node1_tag} and {node2_tag}: {str(e)}")
+                    # Create element tag
+                    element_tag = self.global_ele_counter
+                    self.global_ele_counter += 1
+                    
+                    # Create truss element command
+                    element_str = (
+                        f'ops.element("Truss", {element_tag}, {node1_tag}, {node2_tag}, {area}, {material_tag})\n'
+                    )
+                    
+                    # Add to element command list
+                    self.element_command_list[element_tag] = element_str
+                    
+                    # If working with model instance, create the element
+                    if not self.pyfile:
+                        eval(element_str)
+                    
+                    created_elements.append(element_tag)
         
         return created_elements
 
