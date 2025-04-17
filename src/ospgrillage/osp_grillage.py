@@ -2550,14 +2550,19 @@ class OspGrillage:
         
         Returns:
         --------
-        dict
-            Dictionary mapping original nodes to their duplicates
-            Format: {original_node: [duplicate_node_1, duplicate_node_2, ...]}
+        tuple
+            Returns (node_mapping, duplicate_nodes_list, duplicate_nodes_dict) where:
+            - node_mapping: Dictionary mapping original nodes to their duplicates {original_node: [duplicate_node_1, duplicate_node_2, ...]}
+            - duplicate_nodes_list: List of all duplicate nodes created
+            - duplicate_nodes_dict: Dictionary containing duplicate nodes and their coordinates 
+              {node_tag: {'coordinate': [x, y, z], 'original_node': original_node_tag, 'y_offset': offset}}
         """
         if not node_list or not y_offsets:
             raise ValueError("Both node_list and y_offsets must be non-empty")
             
         node_mapping = {}
+        duplicate_nodes_list = []  # List to store all duplicate nodes
+        duplicate_nodes_dict = {}  # Dictionary to store duplicate nodes with their properties
         
         # Get the last existing node tag to start numbering new nodes
         last_node_tag = max(self.Mesh_obj.node_spec.keys())
@@ -2588,7 +2593,17 @@ class OspGrillage:
                 }
                 
                 node_duplicates.append(current_node_tag)
+                duplicate_nodes_list.append(current_node_tag)
                 current_node_tag += 1
+                
+                # Store duplicate node information in dictionary
+                duplicate_nodes_dict[current_node_tag] = {
+                    'coordinate': new_coords,
+                    'original_node': node,
+                    'y_offset': y_offset,
+                    'x_group': self.Mesh_obj.node_spec[node]["x_group"],
+                    'z_group': self.Mesh_obj.node_spec[node]["z_group"]
+                }
             
             node_mapping[node] = node_duplicates
         
@@ -2609,7 +2624,7 @@ class OspGrillage:
             except:
                 print("Warning: Could not fully recreate boundary conditions")
                 
-        return node_mapping
+        return node_mapping, duplicate_nodes_list, duplicate_nodes_dict
 
     def print_node_coordinates(self, filter_nodes=None):
         """
