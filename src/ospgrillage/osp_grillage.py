@@ -2767,21 +2767,21 @@ class OspGrillage:
                                        rho: float = 7850.0, c_mass: int = 0, do_rayleigh: int = 0):
         """
         Connect duplicate nodes with truss elements, only connecting each node to its immediate neighbor
-        in the x-direction.
+        in the z-direction.
         """
         created_elements = []
         
-        # Group nodes by y-coordinate and z-coordinate
-        nodes_by_yz = {}
+        # Group nodes by x-coordinate and y-coordinate
+        nodes_by_xy = {}
         for node_tag, data in duplicate_nodes_dict.items():
+            x_coord = data['coordinate'][0]
             y_coord = data['coordinate'][1]
-            z_coord = data['coordinate'][2]
-            key = (y_coord, z_coord)  # Group by both y and z coordinates
-            if key not in nodes_by_yz:
-                nodes_by_yz[key] = []
-            nodes_by_yz[key].append((node_tag, data))
+            key = (x_coord, y_coord)  # Group by both x and y coordinates
+            if key not in nodes_by_xy:
+                nodes_by_xy[key] = []
+            nodes_by_xy[key].append((node_tag, data))
         
-        print(f"Found {len(nodes_by_yz)} groups of nodes to connect")
+        print(f"Found {len(nodes_by_xy)} groups of nodes to connect")
         
         # Create material first
         material_tag = 1  # Use fixed material tag
@@ -2796,15 +2796,15 @@ class OspGrillage:
         material_str = f'ops.uniaxialMaterial("Steel01", {material_tag}, {material_params["E"]}, {material_params["Fy"]}, {material_params["b"]})\n'
         self.material_command_list.append(material_str)
         
-        # For each group of nodes with the same y and z coordinates
-        for (y_coord, z_coord), nodes in nodes_by_yz.items():
-            print(f"\nProcessing nodes at y={y_coord}, z={z_coord}")
+        # For each group of nodes with the same x and y coordinates
+        for (x_coord, y_coord), nodes in nodes_by_xy.items():
+            print(f"\nProcessing nodes at x={x_coord}, y={y_coord}")
             
-            # Sort nodes by x-coordinate (from left to right)
-            sorted_nodes = sorted(nodes, key=lambda n: n[1]['coordinate'][0])
+            # Sort nodes by z-coordinate (from front to back)
+            sorted_nodes = sorted(nodes, key=lambda n: n[1]['coordinate'][2])
             print(f"Found {len(sorted_nodes)} nodes in this group")
             
-            # Connect each node only to its immediate neighbor in x-direction
+            # Connect each node only to its immediate neighbor in z-direction
             for i in range(len(sorted_nodes) - 1):
                 node1_tag, node1_data = sorted_nodes[i]
                 node2_tag, node2_data = sorted_nodes[i + 1]
