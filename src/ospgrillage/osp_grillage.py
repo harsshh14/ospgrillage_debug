@@ -2766,25 +2766,24 @@ class OspGrillage:
     def connect_duplicate_nodes_with_trusses(self, duplicate_nodes_dict: dict, material_params: dict, area: float, 
                                        rho: float = 7850.0, c_mass: int = 0, do_rayleigh: int = 0):
         """
-        Connect duplicate nodes with truss elements, only connecting each node to its immediate neighbor
-        in the z-direction.
+        Connect duplicate nodes with truss elements:
+        1. Connect each node to its immediate neighbor in z-direction
+        2. Connect each node to the duplicate nodes above/below its z-direction neighbor
         """
         created_elements = []
         
-        # Group nodes by x-coordinate and y-coordinate
-        nodes_by_xy = {}
+        # Group nodes by x-coordinate
+        nodes_by_x = {}
         for node_tag, data in duplicate_nodes_dict.items():
             x_coord = data['coordinate'][0]
-            y_coord = data['coordinate'][1]
-            key = (x_coord, y_coord)  # Group by both x and y coordinates
-            if key not in nodes_by_xy:
-                nodes_by_xy[key] = []
-            nodes_by_xy[key].append((node_tag, data))
+            if x_coord not in nodes_by_x:
+                nodes_by_x[x_coord] = []
+            nodes_by_x[x_coord].append((node_tag, data))
         
-        print(f"Found {len(nodes_by_xy)} groups of nodes to connect")
+        print(f"Found {len(nodes_by_x)} x-coordinate groups")
         
         # Create material first
-        material_tag = 1  # Use fixed material tag
+        material_tag = 1
         if not self.pyfile:
             try:
                 ops.uniaxialMaterial("Steel01", material_tag, material_params["E"], material_params["Fy"], material_params["b"])
@@ -2796,48 +2795,80 @@ class OspGrillage:
         material_str = f'ops.uniaxialMaterial("Steel01", {material_tag}, {material_params["E"]}, {material_params["Fy"]}, {material_params["b"]})\n'
         self.material_command_list.append(material_str)
         
-        # For each group of nodes with the same x and y coordinates
-        for (x_coord, y_coord), nodes in nodes_by_xy.items():
-            print(f"\nProcessing nodes at x={x_coord}, y={y_coord}")
+        # Process each x-coordinate group
+        for x_coord, nodes in nodes_by_x.items():
+            print(f"\nProcessing nodes at x={x_coord}")
             
-            # Sort nodes by z-coordinate (from front to back)
-            sorted_nodes = sorted(nodes, key=lambda n: n[1]['coordinate'][2])
-            print(f"Found {len(sorted_nodes)} nodes in this group")
+            # Group nodes by y-coordinate
+            nodes_by_y = {}
+            for node_tag, data in nodes:
+                y_coord = data['coordinate'][1]
+                if y_coord not in nodes_by_y:
+                    nodes_by_y[y_coord] = []
+                nodes_by_y[y_coord].append((node_tag, data))
             
-            # Connect each node only to its immediate neighbor in z-direction
-            for i in range(len(sorted_nodes) - 1):
-                node1_tag, node1_data = sorted_nodes[i]
-                node2_tag, node2_data = sorted_nodes[i + 1]
+            # Process each y-level
+            for y_coord, y_level_nodes in nodes_by_y.items():
+                print(f"Processing y-level at y={y_coord}")
                 
-                # Create element tag
-                element_tag = self.global_ele_counter
-                self.global_ele_counter += 1
+                # Sort nodes by z-coordinate
+                sorted_nodes = sorted(y_level_nodes, key=lambda n: n[1]['coordinate'][2])
                 
-                try:
-                    if not self.pyfile:
-                        # Verify nodes exist
-                        try:
-                            node1_coords = ops.nodeCoord(node1_tag)
-                            node2_coords = ops.nodeCoord(node2_tag)
-                        except:
-                            print(f"Warning: Node {node1_tag} or {node2_tag} not found in model")
-                            continue
-                        
-                        print(f"Creating truss between nodes {node1_tag} and {node2_tag}")
-                        # Create truss element
-                        ops.element("Truss", element_tag, node1_tag, node2_tag, area, material_tag)
-                        print(f"Successfully created truss element {element_tag}")
+                # Connect each node to its immediate z-neighbor and the duplicate nodes above/below that neighbor
+                for i in range(len(sorted_nodes) - 1):
+                    current_node_tag, current_node_data = sorted_nodes[i]
+                    next_node_tag, next_node_data = sorted_nodes[i + 1]
                     
-                    # Add to element command list
-                    element_str = (
-                        f'ops.element("Truss", {element_tag}, {node1_tag}, {node2_tag}, {area}, {material_tag})\n'
-                    )
-                    self.element_command_list[element_tag] = element_str
-                    created_elements.append(element_tag)
-                    
-                except Exception as e:
-                    print(f"Warning: Could not create truss between nodes {node1_tag} and {node2_tag}: {str(e)}")
-                    continue
+                    # Connect to immediate z-neighbor
+                    try:
+                        if not self.pyfile:
+                            # Verify nodes exist
+                            try:
+                                current_coords = ops.nodeCoord(current_node_tag)
+                                next_coords = ops.nodeCoord(next_node_tag)
+                            except:
+                                print(f"Warning: Node {current_node_tag} or {next_node_tag} not found in model")
+                                continue
+                            
+                            # Create truss to immediate z-neighbor
+                            element_tag = self.global_ele_counter
+                            self.global_ele_counter += 1
+                            print(f"Creating truss between nodes {current_node_tag} and {next_node_tag}")
+                            ops.element("Truss", element_tag, current_node_tag, next_node_tag, area, material_tag)
+                            print(f"Successfully created truss element {element_tag}")
+                            
+                            element_str = (
+                                f'ops.element("Truss", {element_tag}, {current_node_tag}, {next_node_tag}, {area}, {material_tag})\n'
+                            )
+                            self.element_command_list[element_tag] = element_str
+                            created_elements.append(element_tag)
+                            
+                            # Find and connect to duplicate nodes above/below the next node
+                            next_node_x = next_node_data['coordinate'][0]
+                            next_node_z = next_node_data['coordinate'][2]
+                            
+                            for other_y, other_nodes in nodes_by_y.items():
+                                if other_y != y_coord:  # Look at different y-levels
+                                    # Find node at same x,z coordinates but different y
+                                    for other_tag, other_data in other_nodes:
+                                        if (abs(other_data['coordinate'][0] - next_node_x) < 1e-6 and 
+                                            abs(other_data['coordinate'][2] - next_node_z) < 1e-6):
+                                            # Create truss to duplicate node
+                                            element_tag = self.global_ele_counter
+                                            self.global_ele_counter += 1
+                                            print(f"Creating truss between nodes {current_node_tag} and {other_tag} (duplicate connection)")
+                                            ops.element("Truss", element_tag, current_node_tag, other_tag, area, material_tag)
+                                            print(f"Successfully created truss element {element_tag}")
+                                            
+                                            element_str = (
+                                                f'ops.element("Truss", {element_tag}, {current_node_tag}, {other_tag}, {area}, {material_tag})\n'
+                                            )
+                                            self.element_command_list[element_tag] = element_str
+                                            created_elements.append(element_tag)
+                
+                    except Exception as e:
+                        print(f"Warning: Could not create truss connections for node {current_node_tag}: {str(e)}")
+                        continue
         
         print(f"\nTotal truss elements created: {len(created_elements)}")
         return created_elements
