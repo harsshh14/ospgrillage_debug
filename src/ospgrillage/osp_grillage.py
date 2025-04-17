@@ -2920,16 +2920,27 @@ class OspGrillage:
         """
         created_links = []
         
-        # First, ensure proper boundary conditions exist
+        # First, ensure all support conditions are properly defined
         if not self.pyfile:
-            # Find support nodes (you may need to adjust these based on your model)
-            support_nodes = [1, 31, 61, 91, 121, 151]  # Adjust these node numbers based on your model
+            # Define support nodes (adjust these based on your model)
+            support_nodes = []
+            
+            # Find nodes at x=0 and x=L (ends of the bridge)
+            for node_tag, node_data in self.Mesh_obj.node_spec.items():
+                coords = node_data['coordinate']
+                if abs(coords[0]) < 1e-6 or abs(coords[0] - self.long_dim) < 1e-6:
+                    support_nodes.append(node_tag)
+            
+            print(f"Applying support conditions to {len(support_nodes)} nodes")
+            
+            # Apply support conditions
             for node in support_nodes:
                 try:
-                    # Fix translations and free rotations
+                    # Pin support: fix translations, free rotations
                     ops.fix(node, 1, 1, 1, 0, 0, 0)
-                except:
-                    print(f"Warning: Could not apply boundary condition to node {node}")
+                    print(f"Applied pin support to node {node}")
+                except Exception as e:
+                    print(f"Warning: Could not apply support condition to node {node}: {str(e)}")
         
         # Group duplicate nodes by their original node
         nodes_by_original = {}
@@ -2944,9 +2955,6 @@ class OspGrillage:
         
         # Create rigid links for each original node and its duplicates
         for original_node, duplicate_nodes in nodes_by_original.items():
-            # Sort duplicate nodes by y-coordinate (from top to bottom)
-            sorted_duplicates = sorted(duplicate_nodes, key=lambda n: n[1]['coordinate'][1])
-            
             try:
                 if not self.pyfile:
                     # Verify master node exists
@@ -2956,20 +2964,22 @@ class OspGrillage:
                         print(f"Warning: Master node {original_node} not found in model")
                         continue
                     
-                    # Create rigid links for each duplicate node
+                    # Sort duplicate nodes by y-coordinate
+                    sorted_duplicates = sorted(duplicate_nodes, key=lambda n: n[1]['coordinate'][1])
+                    
                     for slave_tag, slave_data in sorted_duplicates:
                         try:
                             slave_coords = ops.nodeCoord(slave_tag)
                             
-                            # Use equalDOF command with only necessary DOFs
-                            # Constrain only translations (1=x, 2=y, 3=z)
-                            ops.equalDOF(original_node, slave_tag, 1, 2, 3)
+                            # Create multi-point constraint
+                            # Constrain only translational DOFs with retained DOFs at master node
+                            ops.equalDOF(original_node, slave_tag, *[1, 2, 3])
                             
-                            print(f"Created constraint: Master node {original_node} -> Slave node {slave_tag}")
+                            print(f"Created MPC: Master node {original_node} -> Slave node {slave_tag}")
                             created_links.append((original_node, slave_tag))
                             
                         except Exception as e:
-                            print(f"Warning: Could not create constraint between nodes {original_node} and {slave_tag}: {str(e)}")
+                            print(f"Warning: Could not create MPC between nodes {original_node} and {slave_tag}: {str(e)}")
                             continue
                             
             except Exception as e:
@@ -2977,6 +2987,95 @@ class OspGrillage:
                 continue
         
         return created_links
+
+    # Modified analysis sequence
+    def analyze_model(self):
+        """
+        Perform the analysis with proper initialization and error checking
+        """
+        if not self.pyfile:
+            try:
+                # Reset analysis parameters
+                ops.wipe()
+                ops.model('basic', '-ndm', 3, '-ndf', 6)
+                
+                # Recreate nodes
+                print("Recreating nodes...")
+                for node_tag, node_data in self.Mesh_obj.node_spec.items():
+                    coords = node_data['coordinate']
+                    ops.node(node_tag, *coords)
+                
+                # Create materials and elements
+                print("Creating materials and elements...")
+                # Add your material and element creation code here
+                
+                # Create rigid links
+                print("Creating rigid links...")
+                self.create_rigid_links_for_duplicate_nodes(self.duplicate_nodes_dict)
+                
+                # Set up analysis parameters
+                print("Setting up analysis parameters...")
+                ops.system('UmfPack')
+                ops.numberer('RCM')
+                ops.constraints('Transformation')
+                ops.test('NormDispIncr', 1.0e-6, 100)
+                ops.algorithm('Newton')
+                ops.integrator('LoadControl', 0.1)  # Reduced load step
+                ops.analysis('Static')
+                
+                # Perform analysis
+                print("Performing analysis...")
+                num_steps = 10  # Divide the load into 10 steps
+                for step in range(num_steps):
+                    result = ops.analyze(1)
+                    if result < 0:
+                        print(f"Analysis failed at step {step + 1}")
+                        return -1
+                    print(f"Completed step {step + 1}/{num_steps}")
+                
+                print("Analysis completed successfully")
+                return 0
+                
+            except Exception as e:
+                print(f"Analysis error: {str(e)}")
+                return -1
+
+    # Execute the analysis
+    # First create duplicate nodes
+    nodes_to_duplicate = [2,3,4,5,38,39,40,41,68,69,70,71,98,99,100,101,128,129,130,131,8,9,10,11]
+    y_offsets = [350/1000, 1725/1000]
+
+    print("Creating duplicate nodes...")
+    node_mapping, duplicate_nodes_list, duplicate_nodes_dict = model.create_duplicate_nodes_y(nodes_to_duplicate, y_offsets)
+
+    print("\nDefining material parameters...")
+    material_params = {
+        'E': 200e9,    # Elastic modulus (Pa)
+        'Fy': 355e6,   # Yield strength (Pa)
+        'b': 0.02      # Strain hardening ratio
+    }
+
+    print("\nConnecting nodes with trusses...")
+    created_elements = model.connect_duplicate_nodes_with_trusses(
+        duplicate_nodes_dict=duplicate_nodes_dict,
+        material_params=material_params,
+        area=0.01,     # Cross-sectional area (m²)
+        rho=7850.0,    # Mass density (kg/m³)
+    )
+
+    # Perform analysis with load stepping
+    print("\nPerforming analysis...")
+    result = model.analyze_model()
+
+    if result == 0:
+        print("\nChecking results...")
+        # Check displacements at key nodes
+        for node in nodes_to_duplicate[:5]:
+            try:
+                disp = ops.nodeDisp(node)
+                print(f"Node {node} displacement: {disp}")
+            except:
+                print(f"Could not get displacement for node {node}")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
