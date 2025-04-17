@@ -2951,23 +2951,19 @@ class OspGrillage:
                     for slave_tag, slave_data in sorted_duplicates:
                         try:
                             slave_coords = ops.nodeCoord(slave_tag)
-                            print(f"Creating rigid link: Master node {original_node} -> Slave node {slave_tag}")
+                            
+                            # Release DOFs before creating rigid link
+                            # This helps prevent over-constraining
+                            ops.equalDOF(original_node, slave_tag, 1, 2, 3)  # Only constrain translations
+                            
+                            print(f"Created constraint: Master node {original_node} -> Slave node {slave_tag}")
                             print(f"  Master coordinates: ({master_coords[0]:.3f}, {master_coords[1]:.3f}, {master_coords[2]:.3f})")
                             print(f"  Slave coordinates:  ({slave_coords[0]:.3f}, {slave_coords[1]:.3f}, {slave_coords[2]:.3f})")
                             
-                            # Create rigid link
-                            ops.rigidLink('beam', original_node, slave_tag)
                             created_links.append((original_node, slave_tag))
                             
-                            # Add to command list
-                            link_str = f'ops.rigidLink("beam", {original_node}, {slave_tag})\n'
-                            self.rigid_link_command_list.append(link_str)
-                            
-                            print(f"  Rigid link created successfully")
-                            print("--------------------------------------------------")
-                            
                         except Exception as e:
-                            print(f"Warning: Could not create rigid link between nodes {original_node} and {slave_tag}: {str(e)}")
+                            print(f"Warning: Could not create constraint between nodes {original_node} and {slave_tag}: {str(e)}")
                             continue
                             
             except Exception as e:
@@ -2990,7 +2986,7 @@ class OspGrillage:
                 print(f"{master_node:<13} {slave_node:<12} Error getting coordinates")
         
         print("--------------------------------------------------")
-        print(f"Total rigid links created: {len(created_links)}")
+        print(f"Total constraints created: {len(created_links)}")
         
         return created_links
 
