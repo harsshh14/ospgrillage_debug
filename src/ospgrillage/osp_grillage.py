@@ -781,6 +781,8 @@ class OspGrillage:
         """
         # loop all rigidLink command, write or eval rigid link command. note link_str is already formatted
         for link_str in self.Mesh_obj.link_str_list:
+            print("link_str")
+            print(link_str)
             if self.pyfile:
                 with open(self.filename, "a") as file_handle:
                     file_handle.write(link_str)
