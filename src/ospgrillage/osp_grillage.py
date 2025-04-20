@@ -204,7 +204,7 @@ class OspGrillage:
         self.section_dict = {}  # of section tags
         self.material_dict = {}  # of material tags
         # variables related to analysis - which can be unique to element/material/ types
-        self.constraint_type = "Plain"  # base class - plain
+        self.constraint_type = "Transformation"  # base class - plain
         # collect mesh groups
         self.mesh_group = []  # for future release
         if self.mesh_type == "Ortho":
@@ -3044,7 +3044,7 @@ class Analysis:
         self.time_series_counter = time_series_counter
         self.plain_counter = pattern_counter
         # variables from keyword args
-        self.constraint_type = kwargs.get("constraint_type", "Plain")  # Default plain
+        self.constraint_type = kwargs.get("constraint_type", "Transformation")  # Default plain
         # Variables recording results of analysis
         self.node_disp = dict()  # key node tag, val list of dof
         self.ele_force = (
