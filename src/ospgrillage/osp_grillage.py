@@ -2967,10 +2967,8 @@ class OspGrillage:
                         
                         # Create rigid link command
                         link_str = f'ops.rigidLink("beam", {original_node}, {slave_tag})\n'
-                        
-                        if not self.pyfile:
-                            # Execute the command directly
-                            ops.rigidLink('beam', original_node, slave_tag)
+                  
+                        ops.rigidLink('beam', original_node, slave_tag)
                         
                         # Add to command list for both interactive and script modes
                         self.rigid_link_command_list.append(link_str)
