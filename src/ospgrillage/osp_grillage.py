@@ -402,10 +402,10 @@ class OspGrillage:
         self._write_op_model()
         # run model generation in OpenSees or write generation command to py file
         self._run_mesh_generation()
-
+        self._write_rigid_link()
         # create the result object for the grillage model
         self.results = Results(self.Mesh_obj)
-        self._write_rigid_link()
+        
 
     # function to run mesh generation
     def _run_mesh_generation(self):
