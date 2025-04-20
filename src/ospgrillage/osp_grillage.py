@@ -2958,11 +2958,11 @@ class OspGrillage:
                             print(f"  Slave coordinates:  ({slave_coords[0]:.3f}, {slave_coords[1]:.3f}, {slave_coords[2]:.3f})")
                             
                             # Create rigid link
-                            ops.rigidLink('bar', original_node, slave_tag)
+                            ops.rigidLink('beam', original_node, slave_tag)
                             created_links.append((original_node, slave_tag))
                             
                             # Add to command list
-                            link_str = f'ops.rigidLink("bar", {original_node}, {slave_tag})\n'
+                            link_str = f'ops.rigidLink("beam", {original_node}, {slave_tag})\n'
                             self.rigid_link_command_list.append(link_str)
                             
                             print(f"  Rigid link created successfully")
