@@ -2941,36 +2941,47 @@ class OspGrillage:
             sorted_duplicates = sorted(duplicate_nodes, key=lambda n: n[1]['coordinate'][1])
             
             try:
+                # Get master node coordinates
+                master_coords = None
                 if not self.pyfile:
-                    # Verify master node exists
                     try:
                         master_coords = ops.nodeCoord(original_node)
                     except:
                         print(f"Warning: Master node {original_node} not found in model")
                         continue
-                    
-                    # Create rigid links for each duplicate node
-                    for slave_tag, slave_data in sorted_duplicates:
-                        try:
-                            slave_coords = ops.nodeCoord(slave_tag)
-                            print(f"Creating rigid link: Master node {original_node} -> Slave node {slave_tag}")
-                            print(f"  Master coordinates: ({master_coords[0]:.3f}, {master_coords[1]:.3f}, {master_coords[2]:.3f})")
-                            print(f"  Slave coordinates:  ({slave_coords[0]:.3f}, {slave_coords[1]:.3f}, {slave_coords[2]:.3f})")
-                            
-                            # Create rigid link
+                else:
+                    # For script mode, get coordinates from the node dictionary
+                    if original_node in self.node_dict:
+                        master_coords = self.node_dict[original_node]
+                    else:
+                        print(f"Warning: Master node {original_node} not found in node dictionary")
+                        continue
+                
+                # Create rigid links for each duplicate node
+                for slave_tag, slave_data in sorted_duplicates:
+                    try:
+                        slave_coords = slave_data['coordinate']
+                        print(f"Creating rigid link: Master node {original_node} -> Slave node {slave_tag}")
+                        print(f"  Master coordinates: ({master_coords[0]:.3f}, {master_coords[1]:.3f}, {master_coords[2]:.3f})")
+                        print(f"  Slave coordinates:  ({slave_coords[0]:.3f}, {slave_coords[1]:.3f}, {slave_coords[2]:.3f})")
+                        
+                        # Create rigid link command
+                        link_str = f'ops.rigidLink("beam", {original_node}, {slave_tag})\n'
+                        
+                        if not self.pyfile:
+                            # Execute the command directly
                             ops.rigidLink('beam', original_node, slave_tag)
-                            created_links.append((original_node, slave_tag))
-                            
-                            # Add to command list
-                            link_str = f'ops.rigidLink("beam", {original_node}, {slave_tag})\n'
-                            self.rigid_link_command_list.append(link_str)
-                            
-                            print(f"  Rigid link created successfully")
-                            print("--------------------------------------------------")
-                            
-                        except Exception as e:
-                            print(f"Warning: Could not create rigid link between nodes {original_node} and {slave_tag}: {str(e)}")
-                            continue
+                        
+                        # Add to command list for both interactive and script modes
+                        self.rigid_link_command_list.append(link_str)
+                        created_links.append((original_node, slave_tag))
+                        
+                        print(f"  Rigid link created successfully")
+                        print("--------------------------------------------------")
+                        
+                    except Exception as e:
+                        print(f"Warning: Could not create rigid link between nodes {original_node} and {slave_tag}: {str(e)}")
+                        continue
                             
             except Exception as e:
                 print(f"Error processing original node {original_node}: {str(e)}")
@@ -2984,8 +2995,13 @@ class OspGrillage:
         
         for master_node, slave_node in created_links:
             try:
-                master_coords = ops.nodeCoord(master_node)
-                slave_coords = ops.nodeCoord(slave_node)
+                if not self.pyfile:
+                    master_coords = ops.nodeCoord(master_node)
+                    slave_coords = ops.nodeCoord(slave_node)
+                else:
+                    master_coords = self.node_dict[master_node]
+                    slave_coords = duplicate_nodes_dict[slave_node]['coordinate']
+                
                 y_offset = abs(master_coords[1] - slave_coords[1])
                 print(f"{master_node:<13} {slave_node:<12} {y_offset:.3f} m")
             except:
