@@ -224,12 +224,12 @@ class OspGrillage:
 
         # default vector for standard (for 2D grillage in x - z plane) - 1 represent fix for [Vx,Vy,Vz, Mx, My, Mz]
         self.fix_val_pin = [1, 1, 1, 0, 0, 0]  # pinned
-        self.fix_val_roller_x = [1, 1, 1, 0, 0, 0]  # roller
+        self.fix_val_roller_x = [0, 1, 1, 0, 0, 0]  # roller
         self.fix_val_fixed = [1, 1, 1, 1, 1, 1]  # rigid /fixed support
         # default dict for support conditions
         self.fixity_vector = {
             "pin": [1, 1, 1, 0, 0, 0],
-            "roller": [1, 1, 1, 0, 0, 0],
+            "roller": [0, 1, 1, 0, 0, 0],
             "fixed": [1, 1, 1, 1, 1, 1],
         }
         # special rules for grillage - alternative to Properties of grillage definition - use for special dimensions
