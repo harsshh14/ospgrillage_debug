@@ -2555,12 +2555,12 @@ class OspGrillage:
         
         # Clear existing model and initialize new one
         if not self.pyfile:
-            ops.wipe()
-            ops.model('basic', '-ndm', 3, '-ndf', 6)
+            # ops.wipe()
+            # ops.model('basic', '-ndm', 3, '-ndf', 6)
             
-            # Recreate all original nodes
-            for node_tag, coords in original_nodes.items():
-                ops.node(node_tag, *coords)
+            # # Recreate all original nodes
+            # for node_tag, coords in original_nodes.items():
+            #     ops.node(node_tag, *coords)
         
         node_mapping = {}
         duplicate_nodes_list = []
