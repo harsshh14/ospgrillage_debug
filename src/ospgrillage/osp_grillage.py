@@ -2773,6 +2773,7 @@ class OspGrillage:
         Connect duplicate nodes with truss elements:
         1. Connect each node to its immediate neighbor in z-direction
         2. Connect each node to the duplicate nodes above/below its z-direction neighbor
+        3. Connect each duplicate node to the duplicate node directly above it
         """
         created_elements = []
         
@@ -2811,6 +2812,9 @@ class OspGrillage:
                     nodes_by_y[y_coord] = []
                 nodes_by_y[y_coord].append((node_tag, data))
             
+            # Sort y-levels from top to bottom
+            sorted_y_levels = sorted(nodes_by_y.keys())
+            
             # Process each y-level
             for y_coord, y_level_nodes in nodes_by_y.items():
                 print(f"Processing y-level at y={y_coord}")
@@ -2823,7 +2827,6 @@ class OspGrillage:
                     current_node_tag, current_node_data = sorted_nodes[i]
                     next_node_tag, next_node_data = sorted_nodes[i + 1]
                     
-                    # Connect to immediate z-neighbor
                     try:
                         if not self.pyfile:
                             # Verify nodes exist
@@ -2873,7 +2876,37 @@ class OspGrillage:
                     except Exception as e:
                         print(f"Warning: Could not create truss connections for node {current_node_tag}: {str(e)}")
                         continue
-        
+
+            # Connect to duplicate node directly above (if exists)
+            current_y_index = sorted_y_levels.index(y_coord)
+            if current_y_index > 0:  # If there's a y-level above
+                above_y = sorted_y_levels[current_y_index - 1]
+                above_nodes = nodes_by_y[above_y]
+                
+                # For each node in current y-level
+                for current_node_tag, current_node_data in sorted_nodes:
+                    # Find matching node in above y-level (same x,z coordinates)
+                    for above_tag, above_data in above_nodes:
+                        if (abs(above_data['coordinate'][0] - current_node_data['coordinate'][0]) < 1e-6 and 
+                            abs(above_data['coordinate'][2] - current_node_data['coordinate'][2]) < 1e-6):
+                            try:
+                                # Create vertical truss connection
+                                element_tag = self.global_ele_counter
+                                self.global_ele_counter += 1
+                                print(f"Creating vertical truss between nodes {current_node_tag} and {above_tag}")
+                                
+                                if not self.pyfile:
+                                    ops.element("Truss", element_tag, current_node_tag, above_tag, area, material_tag)
+                                
+                                element_str = (
+                                    f'ops.element("Truss", {element_tag}, {current_node_tag}, {above_tag}, {area}, {material_tag})\n'
+                                )
+                                self.element_command_list[element_tag] = element_str
+                                created_elements.append(element_tag)
+                                print(f"Successfully created vertical truss element {element_tag}")
+                            except Exception as e:
+                                print(f"Warning: Could not create vertical truss connection between nodes {current_node_tag} and {above_tag}: {str(e)}")
+    
         print(f"\nTotal truss elements created: {len(created_elements)}")
         return created_elements
 
