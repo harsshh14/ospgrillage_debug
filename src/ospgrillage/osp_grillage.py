@@ -2554,7 +2554,7 @@ class OspGrillage:
             original_nodes[node_tag] = node_data["coordinate"]
         
         # Clear existing model and initialize new one
-        if not self.pyfile:
+        # if not self.pyfile:
             # ops.wipe()
             # ops.model('basic', '-ndm', 3, '-ndf', 6)
             
