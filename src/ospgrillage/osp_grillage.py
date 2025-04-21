@@ -2823,14 +2823,14 @@ class OspGrillage:
                 # Sort nodes by z-coordinate
                 sorted_nodes = sorted(y_level_nodes, key=lambda n: n[1]['coordinate'][2])
                 
-                # Connect each node to its immediate z-neighbor and create diagonal connections
+                # 1. Connect each node to its immediate z-neighbor
                 for j in range(len(sorted_nodes) - 1):
                     current_node_tag, current_node_data = sorted_nodes[j]
                     next_node_tag, next_node_data = sorted_nodes[j + 1]
                     
-                    try:
-                        if not self.pyfile:
-                            # 1. Create horizontal truss connection
+                    if not self.pyfile:
+                        try:
+                            # Create horizontal truss connection
                             element_tag = self.global_ele_counter
                             self.global_ele_counter += 1
                             print(f"Creating horizontal truss between nodes {current_node_tag} and {next_node_tag}")
