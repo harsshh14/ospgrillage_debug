@@ -2448,8 +2448,11 @@ class OspGrillage:
                 if node_tag not in self.Mesh_obj.node_spec:
                     raise ValueError(f"Node tag {node_tag} not found in model")
                     
-                # Get original node coordinates
-                original_coord = self.Mesh_obj.node_spec[node_tag]["coordinate"]
+                # Get original node coordinates and group information
+                original_node = self.Mesh_obj.node_spec[node_tag]
+                original_coord = original_node["coordinate"]
+                original_x_group = original_node["x_group"]
+                original_z_group = original_node["z_group"]
                 
                 # Create new coordinates with offset in y-direction
                 new_coord = [
@@ -2474,10 +2477,12 @@ class OspGrillage:
                     eval(node_str)
                     self.model_command_list.append(node_str)
                     
-                # Add node to mesh specification
+                # Add node to mesh specification with original group information
                 self.Mesh_obj.node_spec[current_node_tag] = {
                     "coordinate": new_coord,
-                    "tag": current_node_tag
+                    "tag": current_node_tag,
+                    "x_group": original_x_group,
+                    "z_group": original_z_group
                 }
                 
                 current_node_tag += 1
