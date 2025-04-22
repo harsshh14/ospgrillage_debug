@@ -2425,6 +2425,63 @@ class OspGrillage:
         # remove all results
         self.results = Results(self.Mesh_obj)  # reset results
 
+    def create_duplicate_nodes(self, node_tags: List[int], distances: List[float]) -> None:
+        """
+        Creates duplicate nodes below existing nodes at specified distances.
+        
+        Args:
+            node_tags (List[int]): List of node tags to duplicate
+            distances (List[float]): List of distances in y-direction for each duplicate node
+                                   (negative values move nodes downward)
+        
+        Returns:
+            None
+        """
+        if len(node_tags) != len(distances):
+            raise ValueError("Number of node tags must match number of distances")
+            
+        # Get the current node counter
+        current_node_tag = max(self.mesh.node_spec.keys()) + 1
+        
+        # Create duplicate nodes
+        for node_tag, distance in zip(node_tags, distances):
+            if node_tag not in self.mesh.node_spec:
+                raise ValueError(f"Node tag {node_tag} not found in model")
+                
+            # Get original node coordinates
+            original_coord = self.mesh.node_spec[node_tag]["coordinate"]
+            
+            # Create new coordinates with offset in y-direction
+            new_coord = [
+                original_coord[0],
+                original_coord[1] + distance,
+                original_coord[2]
+            ]
+            
+            # Create new node
+            node_str = "ops.node({tag}, {x:.4f}, {y:.4f}, {z:.4f})\n".format(
+                tag=current_node_tag,
+                x=new_coord[0],
+                y=new_coord[1],
+                z=new_coord[2]
+            )
+            
+            # Add node to model
+            if self.pyfile:
+                with open(self.filename, "a") as file_handle:
+                    file_handle.write(node_str)
+            else:
+                eval(node_str)
+                self.model_command_list.append(node_str)
+                
+            # Add node to mesh specification
+            self.mesh.node_spec[current_node_tag] = {
+                "coordinate": new_coord,
+                "tag": current_node_tag
+            }
+            
+            current_node_tag += 1
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Analysis:
