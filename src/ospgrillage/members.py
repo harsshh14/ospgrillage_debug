@@ -60,32 +60,6 @@ def create_member(**kwargs):
     return GrillageMember(**kwargs)
 
 
-def create_truss_member(area: float, material, member_name: str = "Truss") -> GrillageMember:
-    """
-    Helper function to create a truss member.
-    
-    Args:
-        area (float): Cross-sectional area of the truss
-        material: Material object for the truss
-        member_name (str): Name of the truss member
-        
-    Returns:
-        GrillageMember: A configured truss member
-    """
-    # Create section for truss (only needs area)
-    truss_section = create_section(
-        A=area,
-        op_ele_type="Truss"  # Specify element type as truss
-    )
-    
-    # Create and return the truss member
-    return create_member(
-        section=truss_section,
-        material=material,
-        member_name=member_name
-    )
-
-
 class Section:
     """
     Class for structural sections of grillage model. Stores geometric properties of cross sections. This class also
@@ -519,3 +493,29 @@ class GrillageMember:
             )
 
         return ele_str
+
+
+def create_truss_member(area: float, material, member_name: str = "Truss") -> GrillageMember:
+    """
+    Helper function to create a truss member.
+    
+    Args:
+        area (float): Cross-sectional area of the truss
+        material: Material object for the truss
+        member_name (str): Name of the truss member
+        
+    Returns:
+        GrillageMember: A configured truss member
+    """
+    # Create section for truss (only needs area)
+    truss_section = create_section(
+        A=area,
+        op_ele_type="Truss"  # Specify element type as truss
+    )
+    
+    # Create and return the truss member
+    return create_member(
+        section=truss_section,
+        material=material,
+        member_name=member_name
+    )
