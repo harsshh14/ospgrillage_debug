@@ -60,6 +60,32 @@ def create_member(**kwargs):
     return GrillageMember(**kwargs)
 
 
+def create_truss_member(area: float, material, member_name: str = "Truss") -> GrillageMember:
+    """
+    Helper function to create a truss member.
+    
+    Args:
+        area (float): Cross-sectional area of the truss
+        material: Material object for the truss
+        member_name (str): Name of the truss member
+        
+    Returns:
+        GrillageMember: A configured truss member
+    """
+    # Create section for truss (only needs area)
+    truss_section = create_section(
+        A=area,
+        op_ele_type="Truss"  # Specify element type as truss
+    )
+    
+    # Create and return the truss member
+    return create_member(
+        section=truss_section,
+        material=material,
+        member_name=member_name
+    )
+
+
 class Section:
     """
     Class for structural sections of grillage model. Stores geometric properties of cross sections. This class also
@@ -406,22 +432,18 @@ class GrillageMember:
         """Return a list of OpenSeesPy element command for the member.
         This function is handled by OspGrillage class.
         """
-        # ```
-        # Function called within OpsGrillage class `set_member()` function.
-        #
-        # For shell elements, n1 n2 n3 n4 are counter clockwise node (n1 being node in quadrant -1 , -1 ).
-        #
-        # Procedure to be called
-        # 1) OpsGrillage assigns the material and section first, then returns the tag of material and section
-        # 2) OpsGrillage calls get_element_command_str of GrillageMember, then it takes in material section and returns
-        #  the element command ops.element() for the respective grillage member
-
-        # format of each ele sublist
-        # [node i, node j, ele group, ele tag, transtag]
-        # ```
         section_input = None
         ele_str = None
-        if self.section.op_ele_type == "ElasticTimoshenkoBeam":
+        
+        if self.section.op_ele_type == "Truss":
+            # Truss elements only need material tag and area
+            ele_str = 'ops.element("Truss", {tag}, *{node_tag_list}, {A}, {mattag})\n'.format(
+                tag=ele_tag,
+                node_tag_list=node_tag_list,
+                A=self.section.A * ele_width,
+                mattag=materialtag
+            )
+        elif self.section.op_ele_type == "ElasticTimoshenkoBeam":
             section_input = self.get_member_prop_arguments(ele_width)
             ele_str = 'ops.element("{type}", {tag}, *{node_tag_list}, *{memberprop}, {transftag}, {mass})\n'.format(
                 type=self.section.op_ele_type,
