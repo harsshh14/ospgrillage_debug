@@ -2487,6 +2487,53 @@ class OspGrillage:
                 
                 current_node_tag += 1
 
+    def create_truss_elements(self, node_pairs: List[Tuple[int, int]], truss_member: GrillageMember) -> None:
+        """
+        Creates truss elements between specified pairs of nodes.
+        
+        Args:
+            node_pairs (List[Tuple[int, int]]): List of node pairs to connect with truss elements
+            truss_member (GrillageMember): The truss member to use for the elements
+            
+        Returns:
+            None
+        """
+        if truss_member.section.op_ele_type != "Truss":
+            raise ValueError("The provided member must be a truss member")
+            
+        # Get the current element counter
+        current_ele_tag = self.Mesh_obj.element_counter
+        
+        # Check and write member's material command
+        material_tag = self._write_material(member=truss_member)
+        
+        # Create truss elements between each pair of nodes
+        for node_i, node_j in node_pairs:
+            # Verify nodes exist
+            if node_i not in self.Mesh_obj.node_spec or node_j not in self.Mesh_obj.node_spec:
+                raise ValueError(f"Node pair ({node_i}, {node_j}) contains invalid node(s)")
+                
+            # Create element command string
+            ele_str = truss_member.get_element_command_str(
+                ele_tag=current_ele_tag,
+                node_tag_list=[node_i, node_j],
+                materialtag=material_tag
+            )
+            
+            # Add element to model
+            if self.pyfile:
+                with open(self.filename, "a") as file_handle:
+                    file_handle.write(ele_str)
+            else:
+                eval(ele_str)
+                self.model_command_list.append(ele_str)
+                
+            # Update element counter
+            current_ele_tag += 1
+            
+        # Update the mesh object's element counter
+        self.Mesh_obj.element_counter = current_ele_tag
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Analysis:
