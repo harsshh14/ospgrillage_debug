@@ -3218,19 +3218,15 @@ class Analysis:
         if not self.pyfile:
             # first loop extract node displacements
             for node_tag in ops.getNodeTags():
-                ops.reactions()
-                disp_list = ops.nodeReaction(node_tag)
-                rxn_val=disp_list[1]/1000
-                if rxn_val > 0.01:
-                    print(f"Node Tag: {node_tag}, Displacement List: {disp_list[1]/1000}")
-                # self.node_disp.setdefault(node_tag, disp_list)
+                disp_list = ops.nodeDisp(node_tag)  # Changed from nodeReaction to nodeDisp
+                self.node_disp[node_tag] = disp_list  # Store the displacement values
 
             # loop through all elements in Mesh, extract local forces
             for ele_tag in ops.getEleTags():
                 ele_force = ops.eleResponse(ele_tag, "localForces")
-                self.ele_force.setdefault(ele_tag, ele_force)
+                self.ele_force[ele_tag] = ele_force
                 global_ele_force = ops.eleResponse(ele_tag, "forces")
-                self.global_ele_force.setdefault(ele_tag, global_ele_force)
+                self.global_ele_force[ele_tag] = global_ele_force
         else:
             print(
                 "OspGrillage is at output mode, pyfile = True. Procedure for {} are generated.".format(
