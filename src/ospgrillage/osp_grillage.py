@@ -2487,6 +2487,74 @@ class OspGrillage:
                 
                 current_node_tag += 1
 
+    def connect_duplicate_nodes_with_truss(self, duplicate_node_tags: List[int], material: Material, truss_area: float = 0.001) -> None:
+        """
+        Connects duplicate nodes with truss elements to adjacent nodes.
+        Only connects duplicate nodes to other duplicate nodes (nodes with non-zero y coordinates).
+        
+        Args:
+            duplicate_node_tags (List[int]): List of duplicate node tags to connect
+            material (Material): Material object to use for truss elements
+            truss_area (float): Cross-sectional area of truss elements (default: 0.001 m²)
+        
+        Returns:
+            None
+        """
+        # Get the current element counter
+        current_ele_tag = max([int(ele[0]) for ele in self.long_ele + self.trans_ele + self.edge_span_ele]) + 1
+        
+        # Get material tag
+        material_tag = self._write_material(material=material)
+        
+        # For each duplicate node
+        for dup_node_tag in duplicate_node_tags:
+            if dup_node_tag not in self.Mesh_obj.node_spec:
+                raise ValueError(f"Duplicate node tag {dup_node_tag} not found in model")
+            
+            # Get duplicate node information
+            dup_node = self.Mesh_obj.node_spec[dup_node_tag]
+            dup_x_group = dup_node["x_group"]
+            dup_z_group = dup_node["z_group"]
+            
+            # Find adjacent nodes (same x_group, z_group + 1) that are also duplicate nodes
+            adjacent_nodes = [
+                node_tag for node_tag, node_info in self.Mesh_obj.node_spec.items()
+                if (node_info["x_group"] == dup_x_group and 
+                    node_info["z_group"] == dup_z_group + 1 and
+                    abs(node_info["coordinate"][1]) > 1e-6)  # Check if y-coordinate is non-zero
+            ]
+            
+            # Create truss elements between duplicate node and adjacent nodes
+            for adj_node_tag in adjacent_nodes:
+                # Create truss element command
+                ele_str = 'ops.element("Truss", {tag}, {node1}, {node2}, {area}, {mat_tag}, "-rho", {rho}, "-cMass", 0, "-doRayleigh", 0)\n'.format(
+                    tag=current_ele_tag,
+                    node1=dup_node_tag,
+                    node2=adj_node_tag,
+                    area=truss_area,
+                    mat_tag=material_tag,
+                    rho=material.density
+                )
+                
+                # Add element to model
+                if self.pyfile:
+                    with open(self.filename, "a") as file_handle:
+                        file_handle.write(ele_str)
+                else:
+                    eval(ele_str)
+                    self.model_command_list.append(ele_str)
+                
+                # Add to element list
+                self.long_ele.append([
+                    current_ele_tag,
+                    dup_node_tag,
+                    adj_node_tag,
+                    dup_z_group,
+                    None  # No transform tag needed for truss
+                ])
+                
+                current_ele_tag += 1
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Analysis:
