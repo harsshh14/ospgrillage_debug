@@ -2524,28 +2524,29 @@ class OspGrillage:
         
         return duplicate_node_tags
 
-    def connect_duplicate_nodes_with_truss(self, material: Material, truss_area: float = 0.001) -> None:
+    def connect_duplicate_nodes_with_truss(self, truss_area: float = 0.001, E: float = 200e9, fy: float = 410e6, v: float = 0.3, rho: float = 7850) -> None:
         """
-        Connects duplicate nodes with truss elements to adjacent nodes.
-        Only connects duplicate nodes to other duplicate nodes (nodes with non-zero y coordinates).
+        Connects duplicate nodes with truss elements.
         
         Args:
-            material (Material): Material object to use for truss elements
-            truss_area (float): Cross-sectional area of truss elements (default: 0.001 m²)
-        
-        Returns:
-            None
+            truss_area (float): Cross-sectional area of truss elements
+            E (float): Young's modulus of the material (default: 200 GPa for steel)
+            fy (float): Yield strength of the material (default: 410 MPa for steel)
+            v (float): Poisson's ratio of the material (default: 0.3 for steel)
+            rho (float): Density of the material (default: 7850 kg/m³ for steel)
         """
-        # Get the current element counter
-        try:
-            current_ele_tag = max([int(ele[0]) for ele in self.long_ele + self.trans_ele + self.edge_span_ele]) + 1
-        except (AttributeError, ValueError):
-            # If element lists don't exist or are empty, start from 1
-            current_ele_tag = 1
+        # Create material directly using OpenSees commands
+        material_tag = 1  # Start with tag 1
+        mat_str = 'ops.uniaxialMaterial("Elastic", {}, {})\n'.format(material_tag, E)
         
-        # Get material tag
-        material_tag = self._write_material(material=material)
-        
+        if self.pyfile:
+            with open(self.filename, "a") as file_handle:
+                file_handle.write("# Material definition for truss elements\n")
+                file_handle.write(mat_str)
+        else:
+            eval(mat_str)
+            self.model_command_list.append(mat_str)
+
         # Find all nodes with non-zero y-coordinates
         duplicate_nodes = [
             node_tag for node_tag, node_info in self.Mesh_obj.node_spec.items()
