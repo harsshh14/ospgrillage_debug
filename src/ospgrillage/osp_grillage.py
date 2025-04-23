@@ -2537,7 +2537,11 @@ class OspGrillage:
             None
         """
         # Get the current element counter
-        current_ele_tag = max([int(ele[0]) for ele in self.long_ele + self.trans_ele + self.edge_span_ele]) + 1
+        try:
+            current_ele_tag = max([int(ele[0]) for ele in self.long_ele + self.trans_ele + self.edge_span_ele]) + 1
+        except (AttributeError, ValueError):
+            # If element lists don't exist or are empty, start from 1
+            current_ele_tag = 1
         
         # Get material tag
         material_tag = self._write_material(material=material)
@@ -2587,6 +2591,8 @@ class OspGrillage:
                     self.model_command_list.append(ele_str)
                 
                 # Add to element list
+                if not hasattr(self, 'long_ele'):
+                    self.long_ele = []
                 self.long_ele.append([
                     current_ele_tag,
                     dup_node_tag,
