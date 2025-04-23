@@ -2458,7 +2458,7 @@ class OspGrillage:
         # remove all results
         self.results = Results(self.Mesh_obj)  # reset results
 
-    def create_duplicate_nodes(self, node_tags: List[int], distances: List[float]) -> None:
+    def create_duplicate_nodes(self, node_tags: List[int], distances: List[float]) -> List[int]:
         """
         Creates duplicate nodes below existing nodes at specified distances.
         Each distance will be applied to all provided nodes.
@@ -2469,8 +2469,11 @@ class OspGrillage:
                                    (negative values move nodes downward)
         
         Returns:
-            None
+            List[int]: List of created duplicate node tags
         """
+        # Initialize list to store duplicate node tags
+        duplicate_node_tags = []
+        
         # Get the current node counter
         current_node_tag = max(self.Mesh_obj.node_spec.keys()) + 1
         
@@ -2518,17 +2521,21 @@ class OspGrillage:
                     "z_group": original_z_group
                 }
                 
+                # Add to duplicate node tags list
+                duplicate_node_tags.append(current_node_tag)
                 current_node_tag += 1
+        
+        return duplicate_node_tags
 
-    def connect_duplicate_nodes_with_truss(self, duplicate_node_tags: List[int], material: Material, truss_area: float = 0.001) -> None:
+    def connect_duplicate_nodes_with_truss(self, material: Material, truss_area: float = 0.001, duplicate_node_tags: List[int] = None) -> None:
         """
         Connects duplicate nodes with truss elements to adjacent nodes.
         Only connects duplicate nodes to other duplicate nodes (nodes with non-zero y coordinates).
         
         Args:
-            duplicate_node_tags (List[int]): List of duplicate node tags to connect
             material (Material): Material object to use for truss elements
             truss_area (float): Cross-sectional area of truss elements (default: 0.001 m²)
+            duplicate_node_tags (List[int], optional): List of duplicate node tags to connect. If None, uses all nodes with non-zero y-coordinates.
         
         Returns:
             None
@@ -2538,6 +2545,13 @@ class OspGrillage:
         
         # Get material tag
         material_tag = self._write_material(material=material)
+        
+        # If no duplicate node tags provided, find all nodes with non-zero y-coordinates
+        if duplicate_node_tags is None:
+            duplicate_node_tags = [
+                node_tag for node_tag, node_info in self.Mesh_obj.node_spec.items()
+                if abs(node_info["coordinate"][1]) > 1e-6
+            ]
         
         # For each duplicate node
         for dup_node_tag in duplicate_node_tags:
@@ -2587,6 +2601,32 @@ class OspGrillage:
                 ])
                 
                 current_ele_tag += 1
+
+    def set_duplicate_nodes(self, node_tags: List[int], distances: List[float]) -> None:
+        """
+        Sets up duplicate nodes to be created after the main model is created.
+        
+        Args:
+            node_tags (List[int]): List of node tags to duplicate
+            distances (List[float]): List of distances in y-direction
+        """
+        self.duplicate_node_info = {
+            'node_tags': node_tags,
+            'distances': distances
+        }
+
+    def set_truss_elements(self, material: Material, truss_area: float = 0.001) -> None:
+        """
+        Sets up truss elements to be created after duplicate nodes are created.
+        
+        Args:
+            material (Material): Material object to use for truss elements
+            truss_area (float): Cross-sectional area of truss elements
+        """
+        self.truss_element_info = {
+            'material': material,
+            'truss_area': truss_area
+        }
 
 
 # ---------------------------------------------------------------------------------------------------------------------
