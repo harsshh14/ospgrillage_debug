@@ -636,53 +636,42 @@ class OspGrillage:
                 eval(equaldof_str)
                 self.model_command_list.append(equaldof_str)
 
-    def _write_material(
-        self, member: GrillageMember = None, material: Material = None
-    ) -> int:
+    def _write_material(self, member: GrillageMember = None, material: Material = None) -> int:
         """
-        Write OpenseesPy Material command
+        Write material command to OpenSees model.
+        
+        Args:
+            member (GrillageMember, optional): Member object containing material
+            material (Material, optional): Direct material object
+            
+        Returns:
+            int: Material tag
         """
-
-        if member is None and material is None:
-            raise Exception(
-                "Uniaxial material has no input GrillageMember or Material Object"
-            )
-        elif member is None:
-            # This is for the option of updating preivously defined material commands
-            material_obj = material
-        elif material is None:
-            material_obj = member.material
-            if not member.material_command_flag:
-                return 1  # placeholder num, no material command is written/executed
-        # access member class object's material - get the material arguments and command
-        (
-            material_type,
-            op_mat_arg,
-        ) = member.material.get_material_args()  # get the material arguments
-
-        # - write unique material tag and input argument to store as key for dict
-        material_str = [
-            material_type,
-            op_mat_arg,
-        ]  # repr both variables as a list for keyword definition
-        lastmaterialtag = self._get_material_tag()
-
-        material_tag = self.material_dict.setdefault(
-            repr(material_str), lastmaterialtag + 1
-        )  # set key for material
-        # check if the material_tag is a previously assigned key, if not, append to material_command_list variable
-        if material_tag != lastmaterialtag:
-            mat_str = member.material.get_ops_material_command(
-                material_tag=material_tag
-            )
-            self.material_command_list.append(mat_str)
-        else:  # material tag defined, skip, print to terminal
-            if self.diagnostics:
-                print(
-                    "Material {} with tag {} has been previously defined".format(
-                        material_type, material_tag
-                    )
-                )
+        if member is not None:
+            material_type, op_mat_arg = member.material.get_material_args()
+        elif material is not None:
+            material_type, op_mat_arg = material.get_material_args()
+        else:
+            raise ValueError("Either member or material must be provided")
+            
+        # Get unique material tag
+        material_tag = self._get_material_tag()
+        
+        # Create material command
+        mat_str = 'ops.uniaxialMaterial("{type}", {tag}, *{vec})\n'.format(
+            type=material_type,
+            tag=material_tag,
+            vec=op_mat_arg
+        )
+        
+        # Add to model
+        if self.pyfile:
+            with open(self.filename, "a") as file_handle:
+                file_handle.write(mat_str)
+        else:
+            eval(mat_str)
+            self.model_command_list.append(mat_str)
+            
         return material_tag
 
     def _get_material_tag(self):
