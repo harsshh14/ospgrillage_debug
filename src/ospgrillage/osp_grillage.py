@@ -342,40 +342,73 @@ class OspGrillage:
     # interface function
     def create_osp_model(self, pyfile: bool = False):
         """
-        Create model in OpenSees model space.
-
-        :param pyfile: if True returns an executable py file instead of creating OpenSees instance of model.
-        :type pyfile: bool
-
+        Creates the OpenSees model by writing/executing the model commands.
+        
+        Args:
+            pyfile (bool): If True, writes commands to a Python file instead of executing them
+        
+        Returns:
+            None
         """
         self.pyfile = pyfile
-        # if output mode, create the py file
         if self.pyfile:
+            self.filename = self.model_name + ".py"
             with open(self.filename, "w") as file_handle:
-                # create py file or overwrite existing
-                # writing headers and description at top of file
-                file_handle.write(
-                    "# Grillage generator wizard\n# Model name: {}\n".format(
-                        self.model_name
-                    )
-                )
-                # time
-                now = datetime.now()
-                dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-                file_handle.write("# Constructed on:{}\n".format(dt_string))
-                # necessary imports
-                file_handle.write(
-                    "import numpy as np\nimport math\nimport openseespy.opensees as ops"
-                    "\nimport vfo.vfo as opsplt\n"
-                )
-
+                # Write imports and model initialization
+                file_handle.write("import openseespy.opensees as ops\n")
+                file_handle.write("ops.wipe()\n")
+                file_handle.write("ops.model('basic', '-ndm', 3, '-ndf', 6)\n")
+        
+        # Create the main deck model
         self._write_op_model()
-        # run model generation in OpenSees or write generation command to py file
-        self._run_mesh_generation()
-
-        # create the result object for the grillage model
-        self.results = Results(self.Mesh_obj)
+        self._write_op_node(self.Mesh_obj)
+        self._write_geom_transf(self.Mesh_obj)
+        self._write_op_fix(self.Mesh_obj)
         self._write_rigid_link()
+        
+        # Create duplicate nodes and truss elements if specified
+        if hasattr(self, 'duplicate_node_info'):
+            # Create duplicate nodes
+            self.create_duplicate_nodes(
+                node_tags=self.duplicate_node_info['node_tags'],
+                distances=self.duplicate_node_info['distances']
+            )
+            
+            # Connect duplicate nodes with truss elements
+            if hasattr(self, 'truss_element_info'):
+                self.connect_duplicate_nodes_with_truss(
+                    duplicate_node_tags=self.truss_element_info['duplicate_node_tags'],
+                    material=self.truss_element_info['material'],
+                    truss_area=self.truss_element_info['truss_area']
+                )
+
+    def set_duplicate_nodes(self, node_tags: List[int], distances: List[float]) -> None:
+        """
+        Sets up duplicate nodes to be created after the main model is created.
+        
+        Args:
+            node_tags (List[int]): List of node tags to duplicate
+            distances (List[float]): List of distances in y-direction
+        """
+        self.duplicate_node_info = {
+            'node_tags': node_tags,
+            'distances': distances
+        }
+
+    def set_truss_elements(self, duplicate_node_tags: List[int], material: Material, truss_area: float = 0.001) -> None:
+        """
+        Sets up truss elements to be created after duplicate nodes are created.
+        
+        Args:
+            duplicate_node_tags (List[int]): List of duplicate node tags to connect
+            material (Material): Material object to use for truss elements
+            truss_area (float): Cross-sectional area of truss elements
+        """
+        self.truss_element_info = {
+            'duplicate_node_tags': duplicate_node_tags,
+            'material': material,
+            'truss_area': truss_area
+        }
 
     # function to run mesh generation
     def _run_mesh_generation(self):
