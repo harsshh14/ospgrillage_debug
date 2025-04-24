@@ -2534,7 +2534,7 @@ class OspGrillage:
             None
         """
         # Get the current element counter
-        current_ele_tag = max([int(ele[0]) for ele in self.long_ele + self.trans_ele + self.edge_span_ele]) + 1
+        current_ele_tag = max([int(ele[0]) for ele in self.Mesh_obj.long_ele + self.Mesh_obj.trans_ele + self.Mesh_obj.edge_span_ele]) + 1
         
         # Get material tag
         material_tag = self._write_material(material=material)
@@ -2578,7 +2578,7 @@ class OspGrillage:
                     self.model_command_list.append(ele_str)
                 
                 # Add to element list
-                self.long_ele.append([
+                self.Mesh_obj.long_ele.append([
                     current_ele_tag,
                     dup_node_tag,
                     adj_node_tag,
